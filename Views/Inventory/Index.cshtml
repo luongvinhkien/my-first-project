@@ -1,0 +1,242 @@
+@using Quanan.Models
+@{
+    ViewData["Title"] = "Quản lý Kho Nguyên Liệu & Công Thức Món";
+    var ingredients = ViewData["Ingredients"] as List<Ingredient>;
+    var menuItems = ViewData["MenuItems"] as List<MenuItem>;
+    var selectedItem = ViewData["SelectedItem"] as MenuItem;
+}
+
+<div class="pos-container" style="grid-template-columns: 3fr 2fr; height: auto;">
+    
+    <!-- Left Panel: Warehouse Ingredients Stock -->
+    <div class="glass-panel">
+        <div class="panel-header">
+            <span class="panel-title"><i class="fa-solid fa-boxes-stacked text-success"></i> Tồn kho nguyên liệu chế biến</span>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-outline" style="padding: 6px 12px; font-size: 13px;" onclick="openAuditModal()">
+                    <i class="fa-solid fa-scale-balanced"></i> Kiểm kê kho
+                </button>
+                <button class="btn-accent" style="padding: 6px 12px; font-size: 13px;" onclick="openNewIngModal()">
+                    <i class="fa-solid fa-plus"></i> Thêm mới
+                </button>
+            </div>
+        </div>
+
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Tên nguyên liệu</th>
+                        <th style="text-align: right;">Số lượng tồn</th>
+                        <th>Đơn vị</th>
+                        <th style="text-align: right;">Mức tối thiểu</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ing in ingredients)
+                    {
+                        var isLow = ing.StockQty <= ing.ReorderLevel;
+                        var statusText = isLow ? "Sắp hết" : "An toàn";
+                        var statusClass = isLow ? "bg-danger text-white" : "bg-success text-white";
+                        <tr>
+                            <td><strong>@ing.Name</strong></td>
+                            <td style="text-align: right; font-weight: 700;" class="@(isLow ? "text-danger" : "text-success")">
+                                @ing.StockQty.ToString("N3")
+                            </td>
+                            <td><span class="badge bg-secondary">@ing.Unit</span></td>
+                            <td style="text-align: right;">@ing.ReorderLevel.ToString("N3")</td>
+                            <td><span class="badge @statusClass px-2 py-0.5 rounded" style="font-size: 10px;">@statusText</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right Panel: Recipe Configurator (BOM) -->
+    <div class="glass-panel">
+        <div class="panel-header">
+            <span class="panel-title"><i class="fa-solid fa-receipt text-warning"></i> Công thức định lượng (BOM)</span>
+        </div>
+
+        <!-- Menu Item selector -->
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label>Chọn món ăn / thức uống</label>
+            <select onchange="location.href='/Inventory/Index?selectedMenuItemId=' + this.value" class="form-control">
+                @foreach (var item in menuItems)
+                {
+                    <!option value="@item.Id" @(selectedItem != null && selectedItem.Id == item.Id ? "selected" : "")>
+                        @item.Name (@item.Code)
+                    </!option>
+                }
+            </select>
+        </div>
+
+        @if (selectedItem != null)
+        {
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+                <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">Định lượng nguyên liệu cho: <span class="text-success">@selectedItem.Name</span></h4>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 0;">Khi bán được 1 phần món này, hệ thống sẽ tự động trừ lượng tồn kho tương ứng bên dưới.</p>
+            </div>
+
+            <!-- Recipe items list -->
+            <div class="data-table-container" style="border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 20px;">
+                <table class="data-table" style="font-size: 13px;">
+                    <thead>
+                        <tr>
+                            <th>Nguyên liệu</th>
+                            <th style="text-align: right;">Cần dùng</th>
+                            <th>Đơn vị</th>
+                            <th style="text-align: center; width: 50px;">Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (selectedItem.Recipes != null && selectedItem.Recipes.Count > 0)
+                        {
+                            foreach (var recipe in selectedItem.Recipes)
+                            {
+                                <tr>
+                                    <td>@recipe.Ingredient?.Name</td>
+                                    <td style="text-align: right; font-weight: 600;">@recipe.QuantityNeeded.ToString("N3")</td>
+                                    <td>@recipe.Ingredient?.Unit</td>
+                                    <td style="text-align: center;">
+                                        <form asp-action="DeleteRecipe" method="post" onsubmit="return confirm('Xóa nguyên liệu này khỏi công thức?')">
+                                            <input type="hidden" name="recipeId" value="@recipe.Id" />
+                                            <button type="submit" style="background:none; border:none; color:var(--status-locked); cursor:pointer;"><i class="fa-regular fa-trash-can"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-muted" style="padding: 16px 0; font-style: italic;">Chưa thiết lập công thức.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Form: Add ingredient to Recipe mapping -->
+            <div style="background: var(--bg-tertiary); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <span style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px; color: var(--text-muted);">Thêm nguyên liệu vào công thức</span>
+                <form asp-action="CreateRecipe" method="post">
+                    <input type="hidden" name="menuItemId" value="@selectedItem.Id" />
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <select name="ingredientId" class="form-control" required>
+                            <option value="">-- Chọn nguyên liệu --</option>
+                            @foreach (var ing in ingredients)
+                            {
+                                <option value="@ing.Id">@ing.Name (@ing.Unit)</option>
+                            }
+                        </select>
+                        <input type="number" step="0.001" name="quantityNeeded" class="form-control" placeholder="Lượng dùng..." required />
+                    </div>
+                    <button type="submit" class="btn-accent" style="width: 100%; justify-content: center; padding: 8px;">Cập nhật công thức</button>
+                </form>
+            </div>
+        }
+    </div>
+
+</div>
+
+<!-- Modal: Create Ingredient Form -->
+<div id="newIngModal" class="modal-overlay" onclick="closeNewIngModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-boxes-packing text-success"></i> Nhập thông tin Nguyên Liệu mới</span>
+            <span class="modal-close" onclick="closeNewIngModal(null)">&times;</span>
+        </div>
+        <form asp-action="CreateIngredient" method="post">
+            <div class="form-group">
+                <label>Tên nguyên liệu *</label>
+                <input type="text" name="Name" class="form-control" placeholder="Thịt gà ta..." required />
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Đơn vị tính *</label>
+                    <input type="text" name="Unit" class="form-control" placeholder="kg, lít, lon..." required />
+                </div>
+                <div class="form-group">
+                    <label>Tồn kho hiện tại</label>
+                    <input type="number" step="0.001" name="StockQty" class="form-control" value="0.000" />
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Hạn sử dụng</label>
+                    <input type="date" name="ExpiryDate" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Ngưỡng báo động tồn tối thiểu</label>
+                    <input type="number" step="0.001" name="ReorderLevel" class="form-control" value="1.000" />
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeNewIngModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Thêm nguyên liệu</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Inventory Count Audit (Điều chỉnh kho) -->
+<div id="auditModal" class="modal-overlay" onclick="closeAuditModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-scale-balanced text-success"></i> Kiểm kê & Điều chỉnh kho</span>
+            <span class="modal-close" onclick="closeAuditModal(null)">&times;</span>
+        </div>
+        <form asp-action="AuditInventory" method="post">
+            <div class="form-group">
+                <label>Chọn nguyên liệu kiểm kê</label>
+                <select name="ingredientId" class="form-control" required>
+                    <option value="">-- Chọn nguyên liệu --</option>
+                    @foreach (var ing in ingredients)
+                    {
+                        <option value="@ing.Id">@ing.Name (Tồn hệ thống: @ing.StockQty.ToString("N2") @ing.Unit)</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Số lượng thực tế đếm được</label>
+                <input type="number" step="0.001" name="actualQty" class="form-control" placeholder="0.000" required />
+            </div>
+            <div class="form-group">
+                <label>Lý do chênh lệch (Ghi chú)</label>
+                <textarea name="notes" class="form-control" rows="2" placeholder="Hao hụt rã đông, rơi vỡ, ..."></textarea>
+            </div>
+            <p style="font-size:12px; color:var(--text-muted); font-style:italic;">
+                Lưu ý: Hệ thống sẽ ghi nhận chênh lệch kiểm kê và thay đổi trực tiếp lượng tồn kho hệ thống về số lượng thực tế đếm được.
+            </p>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeAuditModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Xác nhận điều chỉnh</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openNewIngModal() {
+            document.getElementById('newIngModal').style.display = 'flex';
+        }
+        function closeNewIngModal(e) {
+            if (e === null || e.target === document.getElementById('newIngModal')) {
+                document.getElementById('newIngModal').style.display = 'none';
+            }
+        }
+
+        function openAuditModal() {
+            document.getElementById('auditModal').style.display = 'flex';
+        }
+        function closeAuditModal(e) {
+            if (e === null || e.target === document.getElementById('auditModal')) {
+                document.getElementById('auditModal').style.display = 'none';
+            }
+        }
+    </script>
+}

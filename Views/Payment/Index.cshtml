@@ -1,0 +1,287 @@
+@using Quanan.Models
+@{
+    ViewData["Title"] = "Thanh toán hóa đơn";
+    var unpaidOrders = ViewData["UnpaidOrders"] as List<Order>;
+    var selectedOrder = ViewData["SelectedOrder"] as Order;
+}
+
+<div class="pos-container" style="grid-template-columns: 1fr 3fr; height: auto;">
+    
+    <!-- Sidebar: Unpaid Orders list -->
+    <div class="glass-panel" style="display: flex; flex-direction: column; gap: 10px;">
+        <span class="panel-title" style="font-size: 15px;"><i class="fa-solid fa-list-check text-warning"></i> Đơn chờ thanh toán</span>
+        <div style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 500px;">
+            @if (unpaidOrders != null && unpaidOrders.Count > 0)
+            {
+                foreach (var ord in unpaidOrders)
+                {
+                    var activeClass = selectedOrder != null && selectedOrder.Id == ord.Id ? "border: 1px solid var(--accent-color); background: rgba(16, 185, 129, 0.05);" : "";
+                    <div onclick="location.href='/Payment/Index?orderId=@ord.Id'" 
+                         style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s; @activeClass">
+                        <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 13px;">
+                            <span>@(ord.Table?.TableNumber ?? "Mang đi")</span>
+                            <span class="text-success">@ord.TotalAmount.ToString("N0")đ</span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;">
+                            <span>HD @ord.Id</span>
+                            <span>@ord.OrderTime.ToString("HH:mm")</span>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 13px;">
+                    <i class="fa-solid fa-circle-check text-success" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                    Không có hóa đơn chờ.
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Main Section: Billing Details -->
+    <div class="glass-panel">
+        @if (selectedOrder == null)
+        {
+            <div style="text-align: center; color: var(--text-muted); padding: 80px 0;">
+                <i class="fa-solid fa-cash-register" style="font-size: 60px; margin-bottom: 16px; opacity: 0.3;"></i>
+                <p>Vui lòng tạo hoặc chọn một đơn hàng từ sơ đồ bàn để thanh toán.</p>
+            </div>
+        }
+        else
+        {
+            <form asp-action="ProcessPayment" method="post" id="paymentForm">
+                <input type="hidden" name="orderId" value="@selectedOrder.Id" />
+                <input type="hidden" name="customerId" id="hiddenCustomerId" value="@(selectedOrder.CustomerId ?? 0)" />
+
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px;">
+                    <div>
+                        <h2 style="font-size: 20px; font-weight: 700;">Hóa đơn: @(selectedOrder.Table?.TableNumber ?? "Mang đi")</h2>
+                        <span style="font-size: 12px; color: var(--text-muted);">Mã đơn hàng: HD-@selectedOrder.Id | Thời gian vào: @selectedOrder.OrderTime.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="badge bg-warning text-dark px-3 py-1 rounded" style="font-size: 13px; font-weight: 600;">@selectedOrder.Status</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 3fr 2fr; gap: 24px;">
+                    
+                    <!-- Left: Invoice items list -->
+                    <div>
+                        <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 12px;"><i class="fa-solid fa-list"></i> Chi tiết món ăn</h3>
+                        <div class="data-table-container" style="border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 20px;">
+                            <table class="data-table">
+                                <thead style="background: rgba(255,255,255,0.01);">
+                                    <tr>
+                                        <th>Tên món</th>
+                                        <th style="text-align: center;">SL</th>
+                                        <th style="text-align: right;">Đơn giá</th>
+                                        <th style="text-align: right;">Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in selectedOrder.OrderItems)
+                                    {
+                                        var optText = string.Join(", ", item.OrderItemOptions.Select(o => o.OptionName));
+                                        <tr>
+                                            <td>
+                                                <div><strong>@item.MenuItem?.Name</strong></div>
+                                                @if (!string.IsNullOrEmpty(optText))
+                                                {
+                                                    <div style="font-size: 11px; color: var(--accent-color);"><i class="fa-solid fa-wand-magic-sparkles"></i> @optText</div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(item.Notes))
+                                                {
+                                                    <div style="font-size: 11px; color: var(--text-muted); font-style: italic;"><i class="fa-regular fa-comment"></i> @item.Notes</div>
+                                                }
+                                            </td>
+                                            <td style="text-align: center;">@item.Quantity</td>
+                                            <td style="text-align: right;">@item.Price.ToString("N0")đ</td>
+                                            <td style="text-align: right; font-weight: 600;">@((item.Price * item.Quantity).ToString("N0"))đ</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- CRM membership tier / points addition visual details -->
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+                            <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 10px;"><i class="fa-solid fa-id-card text-success"></i> Liên kết Thành viên (CRM)</h4>
+                            <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;">
+                                <div>
+                                    <span style="font-size: 13px; color: var(--text-muted);">Khách hàng: </span>
+                                    <strong id="crmCustName">@(selectedOrder.Customer != null ? selectedOrder.Customer.Name : "Khách vãng lai")</strong>
+                                    @if (selectedOrder.Customer != null)
+                                    {
+                                        <span id="crmCustTier" class="badge bg-primary text-white" style="margin-left: 8px;">@selectedOrder.Customer.MemberTier</span>
+                                    }
+                                </div>
+                                <div style="font-size: 13px; color: var(--text-muted);">
+                                    Điểm tích lũy: <strong id="crmCustPoints" class="text-success">@(selectedOrder.Customer != null ? selectedOrder.Customer.Points : 0)</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Calculations & Payment gate -->
+                    <div style="border-left: 1px solid var(--border-color); padding-left: 24px;">
+                        <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 12px;"><i class="fa-solid fa-calculator"></i> Tính toán chi phí</h3>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; font-size: 14px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span class="text-muted">Tổng tiền món:</span>
+                                <strong id="subtotalVal" data-val="@selectedOrder.TotalAmount">@selectedOrder.TotalAmount.ToString("N0")đ</strong>
+                            </div>
+
+                            <!-- Voucher input -->
+                            <div class="form-group" style="margin-bottom: 8px;">
+                                <label style="font-size: 12px;">Mã Voucher giảm giá</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="text" id="voucherCodeInp" class="form-control" name="voucherCode" placeholder="GIAM20K, KM10PHANTRAM..." style="padding: 6px 12px;" />
+                                    <button type="button" class="btn-accent" style="padding: 6px 12px; font-size: 13px;" onclick="applyVoucherCode()">Áp dụng</button>
+                                </div>
+                                <span id="voucherMsg" style="font-size: 11px; margin-top: 4px; display: block;"></span>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between;">
+                                <span class="text-muted">Giảm giá voucher:</span>
+                                <strong id="discountVal" class="text-danger">0đ</strong>
+                                <input type="hidden" name="discountAmount" id="hiddenDiscountAmount" value="0" />
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 8px;">
+                                <span class="text-muted">Thuế VAT (8%):</span>
+                                @{
+                                    var vat = selectedOrder.TotalAmount * 0.08m;
+                                }
+                                <strong id="vatVal" data-val="@vat">@vat.ToString("N0")đ</strong>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; font-size: 16px; margin-top: 8px;">
+                                <strong>Khách phải trả:</strong>
+                                <strong id="totalPayableVal" class="text-success" style="font-size: 20px;">@((selectedOrder.TotalAmount + vat).ToString("N0"))đ</strong>
+                            </div>
+                        </div>
+
+                        <!-- Payment method selector -->
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label style="font-weight: 500;"><i class="fa-solid fa-wallet"></i> Phương thức thanh toán</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+                                <label class="area-tab active" style="cursor: pointer; text-align: center; font-size: 13px; font-weight: 400; padding: 10px;">
+                                    <input type="radio" name="paymentMethod" value="Cash" checked onchange="togglePaymentMethod('Cash')" style="display: none;" />
+                                    <i class="fa-solid fa-money-bill-wave text-success"></i> Tiền mặt
+                                </label>
+                                <label class="area-tab" style="cursor: pointer; text-align: center; font-size: 13px; font-weight: 400; padding: 10px;">
+                                    <input type="radio" name="paymentMethod" value="Transfer" onchange="togglePaymentMethod('Transfer')" style="display: none;" />
+                                    <i class="fa-solid fa-qrcode text-info"></i> Chuyển khoản (QR)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- VietQR Simulated Box -->
+                        <div id="vietQrSection" style="display: none; border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; margin-bottom: 20px; background: rgba(59,130,246,0.03); text-align: center;">
+                            <span style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px; color: var(--text-muted);">Quét mã VietQR chuyển khoản nhanh</span>
+                            
+                            <!-- Dynamic Public VietQR API image simulation -->
+                            @{
+                                var finalPay = selectedOrder.TotalAmount + vat;
+                                var qrcodeUrl = $"https://img.vietqr.io/image/MB-9704229203847890-compact2.png?amount={finalPay:F0}&addInfo=Thanh%20toan%20Ban%20{Uri.EscapeDataString(selectedOrder.Table?.TableNumber ?? "MangDi")}&accountName=Am%20Thuc%20Viet";
+                            }
+                            <div style="background: #white; padding: 10px; display: inline-block; border-radius: 8px; margin-bottom: 12px;">
+                                <img id="vietQrImage" src="@qrcodeUrl" alt="VietQR Code" style="max-width: 170px; border-radius: 6px;" />
+                            </div>
+                            <span style="font-size: 11px; color: var(--text-muted); display: block;"><i class="fa-solid fa-circle-check text-success"></i> Hệ thống tự động xác nhận khi có tiền về.</span>
+                        </div>
+
+                        <button type="submit" class="btn-accent" style="width: 100%; justify-content: center; padding: 14px; font-size: 16px;">
+                            <i class="fa-solid fa-cash-register"></i> HOÀN TẤT & IN HÓA ĐƠN
+                        </button>
+                    </div>
+
+                </div>
+            </form>
+        }
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        function togglePaymentMethod(method) {
+            var tabs = document.querySelectorAll('[name="paymentMethod"]');
+            tabs.forEach(t => {
+                t.parentElement.classList.remove('active');
+            });
+            event.target.parentElement.classList.add('active');
+
+            var qrSec = document.getElementById('vietQrSection');
+            if (method === 'Transfer') {
+                qrSec.style.display = 'block';
+                regenerateVietQR();
+            } else {
+                qrSec.style.display = 'none';
+            }
+        }
+
+        // Apply Voucher code AJAX trigger
+        function applyVoucherCode() {
+            var code = document.getElementById('voucherCodeInp').value;
+            var subtotal = parseFloat(document.getElementById('subtotalVal').getAttribute('data-val'));
+            
+            if (!code) {
+                alert("Vui lòng nhập mã voucher!");
+                return;
+            }
+
+            $.ajax({
+                url: '/Payment/ApplyVoucher',
+                type: 'POST',
+                data: {
+                    code: code,
+                    currentTotal: subtotal
+                },
+                success: function(res) {
+                    var msg = document.getElementById('voucherMsg');
+                    if (res.success) {
+                        msg.innerText = res.message;
+                        msg.className = "text-success";
+                        
+                        // Apply values
+                        var discount = res.discount;
+                        document.getElementById('discountVal').innerText = "-" + discount.toLocaleString() + "đ";
+                        document.getElementById('hiddenDiscountAmount').value = discount;
+
+                        // Recalculate payable
+                        var vat = parseFloat(document.getElementById('vatVal').getAttribute('data-val'));
+                        var payable = subtotal - discount + vat;
+                        if (payable < 0) payable = 0;
+
+                        document.getElementById('totalPayableVal').innerText = payable.toLocaleString() + "đ";
+
+                        // Update VietQR image
+                        regenerateVietQR();
+                    } else {
+                        msg.innerText = res.message;
+                        msg.className = "text-danger";
+                    }
+                }
+            });
+        }
+
+        function regenerateVietQR() {
+            var subtotal = parseFloat(document.getElementById('subtotalVal').getAttribute('data-val'));
+            var discount = parseFloat(document.getElementById('hiddenDiscountAmount').value);
+            var vat = parseFloat(document.getElementById('vatVal').getAttribute('data-val'));
+            var payable = subtotal - discount + vat;
+            if (payable < 0) payable = 0;
+
+            var tblName = "@(selectedOrder?.Table?.TableNumber ?? "MangDi")";
+            var url = "https://img.vietqr.io/image/MB-9704229203847890-compact2.png?amount=" + payable.toFixed(0) + "&addInfo=Thanh toan Ban " + encodeURIComponent(tblName) + "&accountName=Am Thuc Viet";
+            
+            var qrImg = document.getElementById('vietQrImage');
+            if (qrImg) {
+                qrImg.src = url;
+            }
+        }
+    </script>
+}

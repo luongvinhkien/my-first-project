@@ -1,0 +1,552 @@
+@using Quanan.Models
+@{
+    ViewData["Title"] = "Quản lý Bàn & Sơ đồ";
+    var areas = ViewData["Areas"] as List<Area>;
+    var reservations = ViewData["Reservations"] as List<Reservation>;
+    var emptyTables = ViewData["EmptyTables"] as List<Table>;
+    var servingTables = ViewData["ServingTables"] as List<Table>;
+}
+
+<div class="pos-container" style="grid-template-columns: 2fr 1fr; height: auto;">
+    
+    <!-- Table Map Section (Left side) -->
+    <div>
+        <div class="glass-panel">
+            <div class="panel-header">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span class="panel-title"><i class="fa-solid fa-map-location-dot text-success"></i> Sơ đồ khu vực phòng / bàn</span>
+                    <!-- Left Date selector sync -->
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 12px; color: var(--text-muted);">Ngày:</span>
+                        <input type="date" onchange="location.href='/Table/Index?date=' + this.value" class="form-control" style="font-size: 12px; padding: 4px 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: #fff; border-radius: 6px; width: 135px;" value="@ViewData["SelectedDate"]" />
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <div style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted);">
+                        <span style="display:inline-block; width:10px; height:10px; background-color:#6b7280; border-radius:50%;"></span> Trống
+                        <span style="display:inline-block; width:10px; height:10px; background-color:#10b981; border-radius:50%;"></span> Phục vụ
+                        <span style="display:inline-block; width:10px; height:10px; background-color:#3b82f6; border-radius:50%;"></span> Đặt trước
+                        <span style="display:inline-block; width:10px; height:10px; background-color:#f59e0b; border-radius:50%;"></span> Đang dọn
+                        <span style="display:inline-block; width:10px; height:10px; background-color:#ef4444; border-radius:50%;"></span> Khóa
+                    </div>
+                </div>
+            </div>
+
+            <!-- Area tabs & Manager tools -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                <div class="area-tabs" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+                    <div class="area-tab active" onclick="filterArea('all')">Tất cả</div>
+                    @foreach (var area in areas)
+                    {
+                        <div class="area-tab" onclick="filterArea('area-@area.Id')">@area.Name</div>
+                    }
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="openCreateAreaModal()" class="btn-outline" style="font-size: 12px; padding: 6px 12px; border-color: var(--accent-color); color: var(--accent-color);">
+                        <i class="fa-solid fa-folder-plus"></i> Thêm khu vực
+                    </button>
+                    <button onclick="openCreateTableModal()" class="btn-accent" style="font-size: 12px; padding: 6px 12px;">
+                        <i class="fa-solid fa-circle-plus"></i> Thêm bàn
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tables visual display -->
+            <div class="tables-grid">
+                @foreach (var area in areas)
+                {
+                    foreach (var table in area.Tables)
+                    {
+                        <div class="table-card @table.Status.ToLower() area-item area-@area.Id" 
+                             onclick="showTableAction(@table.Id, '@table.TableNumber', '@table.Status', @table.Capacity, '@area.Name')">
+                            <div class="table-name">@table.TableNumber</div>
+                            <div class="table-capacity"><i class="fa-solid fa-users-viewfinder"></i> @table.Capacity người</div>
+                            <span class="table-status-badge">
+                                @if (table.Status == "Empty") { @:Trống
+                                } else if (table.Status == "Serving") { @:Phục vụ
+                                } else if (table.Status == "Reserved") { @:Đã đặt
+                                } else if (table.Status == "Cleaning") { @:Đang dọn
+                                } else if (table.Status == "Locked") { @:Khóa
+                                }
+                            </span>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Reservations & Bookings Section (Right side) -->
+    <div>
+        <div class="glass-panel" style="height: 100%; display: flex; flex-direction: column;">
+            <div class="panel-header" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="panel-title"><i class="fa-solid fa-calendar-days text-primary"></i> Danh sách đặt bàn trước</span>
+                    <button class="btn-accent" style="padding: 6px 12px; font-size: 12px;" onclick="openReservationModal()">
+                        <i class="fa-solid fa-plus"></i> Đặt bàn
+                    </button>
+                </div>
+                <!-- Date selector -->
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">Chọn ngày:</span>
+                    <input type="date" id="reservationDateFilter" onchange="location.href='/Table/Index?date=' + this.value" class="form-control" style="font-size: 12px; padding: 4px 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;" value="@ViewData["SelectedDate"]" />
+                </div>
+            </div>
+            
+            <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; max-height: 500px;">
+                @if (reservations != null && reservations.Count > 0)
+                {
+                    foreach (var res in reservations)
+                    {
+                        var statusClass = res.Status == "Pending" ? "text-warning" : (res.Status == "CheckedIn" ? "text-success" : "text-muted");
+                        <div style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; position: relative;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <strong>@res.Customer?.Name</strong>
+                                <span class="@statusClass" style="font-size: 12px; font-weight: 600;">@res.Status</span>
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-muted); display: grid; grid-template-columns: auto 1fr; gap: 8px; margin-bottom: 10px;">
+                                <span>SĐT:</span> <strong>@res.Customer?.Phone</strong>
+                                <span>Thời gian:</span> <span>@res.ReservationTime.ToString("dd/MM HH:mm")</span>
+                                <span>Vị trí:</span> <span>@(res.Table?.TableNumber ?? "Tự chọn") (@(res.Area?.Name ?? "Bất kỳ")) - @res.GuestCount khách</span>
+                                <span>Đặt cọc:</span> <span class="text-success">@res.DepositAmount.ToString("N0")đ</span>
+                                @if (!string.IsNullOrEmpty(res.Note))
+                                {
+                                    <span>Ghi chú:</span> <span style="font-style: italic;">"@res.Note"</span>
+                                }
+                            </div>
+
+                            @if (res.Status == "Pending")
+                            {
+                                <div style="display: flex; gap: 8px;">
+                                    <form asp-action="CheckInReservation" method="post" style="flex: 1;">
+                                        <input type="hidden" name="reservationId" value="@res.Id" />
+                                        <button type="submit" class="btn-accent" style="width: 100%; padding: 6px; font-size: 12px; justify-content: center;">Check-in</button>
+                                    </form>
+                                    <form asp-action="CancelReservation" method="post">
+                                        <input type="hidden" name="reservationId" value="@res.Id" />
+                                        <button type="submit" class="btn-outline" style="padding: 6px 12px; font-size: 12px; border-color: var(--status-locked); color: var(--status-locked);">Hủy</button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                        <i class="fa-regular fa-calendar" style="font-size: 40px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        Chưa có lịch đặt bàn trước.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Table Actions Details -->
+<div id="tableActionModal" class="modal-overlay" onclick="closeTableModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title" id="modalTableTitle">Thông tin Bàn</span>
+            <span class="modal-close" onclick="closeTableModal(null)">&times;</span>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <p style="font-size: 14px; margin-bottom: 6px;">Khu vực: <strong id="modalAreaName">Trong nhà</strong></p>
+            <p style="font-size: 14px; margin-bottom: 6px;">Sức chứa: <strong id="modalCapacity">4</strong> người</p>
+            <p style="font-size: 14px;">Trạng thái hiện tại: <span id="modalTableStatus" class="badge">Trống</span></p>
+        </div>
+
+        <!-- Action Panel conditional on status -->
+        <div id="emptyActions" style="display: none; flex-direction: column; gap: 10px;">
+            <form asp-action="OpenTable" method="post">
+                <input type="hidden" name="tableId" id="openTableId" />
+                <button type="submit" class="btn-accent" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-circle-play"></i> Mở bàn phục vụ khách
+                </button>
+            </form>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <form asp-action="ToggleLockTable" method="post">
+                    <input type="hidden" name="tableId" id="lockTableId" />
+                    <button type="submit" class="btn-outline" style="width: 100%; border-color: var(--status-locked); color: var(--status-locked);">
+                        <i class="fa-solid fa-lock"></i> Khóa bàn
+                    </button>
+                </form>
+                <button class="btn-outline" onclick="triggerReservationForTable()">
+                    <i class="fa-regular fa-calendar-plus"></i> Đặt trước
+                </button>
+            </div>
+        </div>
+
+        <div id="servingActions" style="display: none; flex-direction: column; gap: 10px;">
+            <!-- POS Order Direct Link -->
+            <a href="#" id="posOrderLink" class="btn-accent" style="width: 100%; justify-content: center; text-decoration: none;">
+                <i class="fa-solid fa-cart-shopping"></i> Vào Gọi Món (Order POS)
+            </a>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn-outline" onclick="openTransferModal()">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i> Chuyển bàn
+                </button>
+                <button class="btn-outline" onclick="openMergeModal()">
+                    <i class="fa-solid fa-link"></i> Gộp bàn
+                </button>
+            </div>
+
+            <a href="/Payment/Index" class="btn-outline" style="width: 100%; border-color: var(--accent-color); color: var(--accent-color); text-align: center; justify-content: center; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-cash-register"></i> Đọc Hóa Đơn & Thanh toán
+            </a>
+        </div>
+
+        <div id="cleaningActions" style="display: none; flex-direction: column; gap: 10px;">
+            <form asp-action="CleanTable" method="post">
+                <input type="hidden" name="tableId" id="cleanTableId" />
+                <button type="submit" class="btn-accent" style="width: 100%; justify-content: center; background-color: var(--status-cleaning);">
+                    <i class="fa-solid fa-broom"></i> Hoàn tất dọn dẹp bàn
+                </button>
+            </form>
+        </div>
+
+        <div id="lockedActions" style="display: none; flex-direction: column; gap: 10px;">
+            <form asp-action="ToggleLockTable" method="post">
+                <input type="hidden" name="tableId" id="unlockTableId" />
+                <button type="submit" class="btn-accent" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-lock-open"></i> Mở khóa bàn
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: New Reservation Booking -->
+<div id="reservationModal" class="modal-overlay" onclick="closeReservationModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-regular fa-calendar-plus text-success"></i> Đặt bàn trước</span>
+            <span class="modal-close" onclick="closeReservationModal(null)">&times;</span>
+        </div>
+        <form asp-action="CreateReservation" method="post">
+            <div class="form-group">
+                <label>Tên khách hàng</label>
+                <input type="text" name="customerName" class="form-control" placeholder="Nguyễn Văn A" required />
+            </div>
+            <div class="form-group">
+                <label>Số điện thoại</label>
+                <input type="text" name="customerPhone" class="form-control" placeholder="0901234567" required />
+            </div>
+            <div class="form-group">
+                <label>Email (Nhận xác nhận)</label>
+                <input type="email" name="customerEmail" class="form-control" placeholder="a.nguyen@gmail.com" />
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Số khách</label>
+                    <input type="number" name="guestCount" class="form-control" value="2" min="1" required />
+                </div>
+                <div class="form-group">
+                    <label>Tiền đặt cọc (VNĐ)</label>
+                    <input type="number" name="deposit" class="form-control" value="0" min="0" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Thời gian đến</label>
+                <input type="datetime-local" name="reservationTime" class="form-control" required />
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Chọn bàn trước</label>
+                    <select name="tableId" id="resTableSelect" class="form-control">
+                        <option value="0">Tự xếp bàn khi đến</option>
+                        @foreach (var tbl in emptyTables)
+                        {
+                            <option value="@tbl.Id">@tbl.TableNumber (@tbl.Capacity người)</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Khu vực ưu tiên</label>
+                    <select name="areaId" class="form-control">
+                        <option value="0">Bất kỳ</option>
+                        @foreach (var area in areas)
+                        {
+                            <option value="@area.Id">@area.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Ghi chú</label>
+                <textarea name="note" class="form-control" rows="2" placeholder="Không tiêu, setup sinh nhật, ..."></textarea>
+            </div>
+            <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeReservationModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Xác nhận đặt bàn</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Transfer Table (Chuyển bàn) -->
+<div id="transferModal" class="modal-overlay" onclick="closeTransferModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-arrow-right-arrow-left"></i> Chuyển Bàn</span>
+            <span class="modal-close" onclick="closeTransferModal(null)">&times;</span>
+        </div>
+        <form asp-action="TransferTable" method="post">
+            <input type="hidden" name="fromTableId" id="transferFromTableId" />
+            <div class="form-group">
+                <label>Chuyển từ bàn</label>
+                <input type="text" id="transferFromTableName" class="form-control" readonly />
+            </div>
+            <div class="form-group">
+                <label>Sang bàn trống</label>
+                <select name="toTableId" class="form-control" required>
+                    @foreach (var tbl in emptyTables)
+                    {
+                        <option value="@tbl.Id">@tbl.TableNumber (@tbl.Capacity người)</option>
+                    }
+                </select>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeTransferModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Đồng ý Chuyển</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Merge Tables (Gộp bàn) -->
+<div id="mergeModal" class="modal-overlay" onclick="closeMergeModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-link"></i> Gộp Bàn</span>
+            <span class="modal-close" onclick="closeMergeModal(null)">&times;</span>
+        </div>
+        <form asp-action="MergeTables" method="post">
+            <input type="hidden" name="sourceTableId" id="mergeSourceTableId" />
+            <div class="form-group">
+                <label>Gộp toàn bộ món ở bàn</label>
+                <input type="text" id="mergeSourceTableName" class="form-control" readonly />
+            </div>
+            <div class="form-group">
+                <label>Vào bàn đang hoạt động</label>
+                <select name="targetTableId" class="form-control" required>
+                    @foreach (var tbl in servingTables)
+                    {
+                        <option value="@tbl.Id" id="mergeTargetOption-@tbl.Id">@tbl.TableNumber</option>
+                    }
+                </select>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); font-style: italic;">
+                Lưu ý: Toàn bộ danh sách món ăn đã order ở bàn nguồn sẽ được cộng dồn sang bàn đích. Bàn nguồn sẽ chuyển sang trạng thái đang dọn dẹp.
+            </p>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeMergeModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Xác nhận Gộp</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Create Area (Thêm khu vực) -->
+<div id="createAreaModal" class="modal-overlay" onclick="closeCreateAreaModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-folder-plus text-success"></i> Thêm Khu Vực / Lầu Mới</span>
+            <span class="modal-close" onclick="closeCreateAreaModal(null)">&times;</span>
+        </div>
+        <form asp-action="CreateArea" method="post">
+            <div class="form-group">
+                <label>Tên khu vực (ví dụ: Lầu 2, Lầu 3, VIP)</label>
+                <input type="text" name="areaName" class="form-control" placeholder="Nhập tên khu vực..." required />
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeCreateAreaModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Lưu Khu Vực</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Create Table (Thêm bàn) -->
+<div id="createTableModal" class="modal-overlay" onclick="closeCreateTableModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-circle-plus text-success"></i> Thêm Bàn Mới</span>
+            <span class="modal-close" onclick="closeCreateTableModal(null)">&times;</span>
+        </div>
+        <form asp-action="CreateTable" method="post">
+            <div class="form-group">
+                <label>Số hiệu bàn (ví dụ: Bàn 12, VIP 05)</label>
+                <input type="text" name="tableNumber" class="form-control" placeholder="Nhập tên/số hiệu bàn..." required />
+            </div>
+            <div class="form-group">
+                <label>Khu vực phòng / lầu</label>
+                <select name="areaId" class="form-control" required>
+                    @foreach (var area in areas)
+                    {
+                        <option value="@area.Id">@area.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Số người tối đa (Sức chứa)</label>
+                <input type="number" name="capacity" class="form-control" value="4" min="1" required />
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeCreateTableModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Lưu Bàn</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openCreateAreaModal() {
+            document.getElementById('createAreaModal').style.display = 'flex';
+        }
+        function closeCreateAreaModal(e) {
+            if (e === null || e.target.classList.contains('modal-overlay')) {
+                document.getElementById('createAreaModal').style.display = 'none';
+            }
+        }
+
+        function openCreateTableModal() {
+            document.getElementById('createTableModal').style.display = 'flex';
+        }
+        function closeCreateTableModal(e) {
+            if (e === null || e.target.classList.contains('modal-overlay')) {
+                document.getElementById('createTableModal').style.display = 'none';
+            }
+        }
+        // Area filtering
+        function filterArea(areaClass) {
+            // Update tabs active state
+            var tabs = document.querySelectorAll('.area-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Hide/Show tables
+            var items = document.querySelectorAll('.area-item');
+            if (areaClass === 'all') {
+                items.forEach(item => item.style.display = 'block');
+            } else {
+                items.forEach(item => {
+                    if (item.classList.contains(areaClass)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // Global table variables for actions
+        var currentTableId = 0;
+        var currentTableName = "";
+
+        // Show Table Modal
+        function showTableAction(id, name, status, capacity, areaName) {
+            currentTableId = id;
+            currentTableName = name;
+
+            document.getElementById('modalTableTitle').innerText = name + " - Chi tiết bàn";
+            document.getElementById('modalAreaName').innerText = areaName;
+            document.getElementById('modalCapacity').innerText = capacity;
+            
+            var statusBadge = document.getElementById('modalTableStatus');
+            statusBadge.innerText = status === 'Empty' ? 'Trống' : (status === 'Serving' ? 'Đang phục vụ' : (status === 'Reserved' ? 'Đã đặt trước' : (status === 'Cleaning' ? 'Đang dọn dẹp' : 'Đã khóa')));
+            statusBadge.className = "badge bg-secondary";
+            if (status === 'Serving') statusBadge.className = "badge bg-success";
+            if (status === 'Reserved') statusBadge.className = "badge bg-primary";
+            if (status === 'Cleaning') statusBadge.className = "badge bg-warning text-dark";
+            if (status === 'Locked') statusBadge.className = "badge bg-danger";
+
+            // Hide all actions panels
+            document.getElementById('emptyActions').style.display = 'none';
+            document.getElementById('servingActions').style.display = 'none';
+            document.getElementById('cleaningActions').style.display = 'none';
+            document.getElementById('lockedActions').style.display = 'none';
+
+            // Show appropriate panel
+            if (status === 'Empty') {
+                document.getElementById('emptyActions').style.display = 'flex';
+                document.getElementById('openTableId').value = id;
+                document.getElementById('lockTableId').value = id;
+            } else if (status === 'Serving') {
+                document.getElementById('servingActions').style.display = 'flex';
+                document.getElementById('posOrderLink').href = "/Order/Index?tableId=" + id;
+            } else if (status === 'Cleaning') {
+                document.getElementById('cleaningActions').style.display = 'flex';
+                document.getElementById('cleanTableId').value = id;
+            } else if (status === 'Locked') {
+                document.getElementById('lockedActions').style.display = 'flex';
+                document.getElementById('unlockTableId').value = id;
+            }
+
+            document.getElementById('tableActionModal').style.display = 'flex';
+        }
+
+        function closeTableModal(e) {
+            if (e === null || e.target === document.getElementById('tableActionModal')) {
+                document.getElementById('tableActionModal').style.display = 'none';
+            }
+        }
+
+        // Reservation Modal
+        function openReservationModal() {
+            document.getElementById('reservationModal').style.display = 'flex';
+        }
+        function closeReservationModal(e) {
+            if (e === null || e.target === document.getElementById('reservationModal')) {
+                document.getElementById('reservationModal').style.display = 'none';
+            }
+        }
+        function triggerReservationForTable() {
+            closeTableModal(null);
+            document.getElementById('resTableSelect').value = currentTableId;
+            openReservationModal();
+        }
+
+        // Transfer Table Modal
+        function openTransferModal() {
+            closeTableModal(null);
+            document.getElementById('transferFromTableId').value = currentTableId;
+            document.getElementById('transferFromTableName').value = currentTableName;
+            document.getElementById('transferModal').style.display = 'flex';
+        }
+        function closeTransferModal(e) {
+            if (e === null || e.target === document.getElementById('transferModal')) {
+                document.getElementById('transferModal').style.display = 'none';
+            }
+        }
+
+        // Merge Table Modal
+        function openMergeModal() {
+            closeTableModal(null);
+            document.getElementById('mergeSourceTableId').value = currentTableId;
+            document.getElementById('mergeSourceTableName').value = currentTableName;
+
+            // Hide own table option in dropdown
+            var targetOption = document.getElementById('mergeTargetOption-' + currentTableId);
+            if (targetOption) {
+                targetOption.style.display = 'none';
+            }
+
+            document.getElementById('mergeModal').style.display = 'flex';
+        }
+        function closeMergeModal(e) {
+            if (e === null || e.target === document.getElementById('mergeModal')) {
+                document.getElementById('mergeModal').style.display = 'none';
+                
+                // Show back own option
+                var targetOption = document.getElementById('mergeTargetOption-' + currentTableId);
+                if (targetOption) {
+                    targetOption.style.display = 'block';
+                }
+            }
+        }
+    </script>
+}

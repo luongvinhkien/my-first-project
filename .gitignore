@@ -1,0 +1,16 @@
+# Build outputs
+bin/
+obj/
+
+# Node modules
+node_modules/
+
+# Local configuration / secrets
+appsettings.Development.json
+
+# IDE and agents files
+.vs/
+.vscode/
+.agents/
+.gemini/
+*.log

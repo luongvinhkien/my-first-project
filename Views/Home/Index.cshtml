@@ -1,0 +1,268 @@
+@using Quanan.Models
+@{
+    ViewData["Title"] = "Tổng Quan Kinh Doanh";
+    var todayRevenue = (decimal)ViewData["TodayRevenue"];
+    var servingTables = (int)ViewData["ServingTables"];
+    var emptyTables = (int)ViewData["EmptyTables"];
+    var activeGuests = (int)ViewData["ActiveGuests"];
+    var cookingOrders = (int)ViewData["CookingOrders"];
+    var pendingPaymentOrders = (int)ViewData["PendingPaymentOrders"];
+    var activeEmployeesCount = (int)ViewData["ActiveEmployeesCount"];
+    var lowStockCount = (int)ViewData["LowStockCount"];
+    var lowStockList = (List<Ingredient>)ViewData["LowStockList"];
+    
+    // Top sellers cast
+    var topSellers = ViewData["TopSellers"] as List<TopSellerDto>;
+}
+
+<!-- Summary Statistics Cards -->
+<div class="dashboard-grid">
+    <div class="stats-card">
+        <div class="stats-info">
+            <h3>Doanh thu hôm nay</h3>
+            <div class="value text-success">@todayRevenue.ToString("N0")đ</div>
+        </div>
+        <div class="stats-icon green">
+            <i class="fa-solid fa-dong-sign"></i>
+        </div>
+    </div>
+    <div class="stats-card">
+        <div class="stats-info">
+            <h3>Bàn đang phục vụ</h3>
+            <div class="value">@servingTables / @(servingTables + emptyTables)</div>
+        </div>
+        <div class="stats-icon blue">
+            <i class="fa-solid fa-utensils"></i>
+        </div>
+    </div>
+    <div class="stats-card">
+        <div class="stats-info">
+            <h3>Khách tại cửa hàng</h3>
+            <div class="value">@activeGuests khách</div>
+        </div>
+        <div class="stats-icon yellow">
+            <i class="fa-solid fa-users"></i>
+        </div>
+    </div>
+    <div class="stats-card">
+        <div class="stats-info">
+            <h3>Cảnh báo hết kho</h3>
+            <div class="value @(lowStockCount > 0 ? "text-danger" : "")">@lowStockCount nguyên liệu</div>
+        </div>
+        <div class="stats-icon rose">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Panel (Revenue & Profits) -->
+<div class="charts-grid">
+    <div class="glass-panel">
+        <div class="panel-header">
+            <span class="panel-title"><i class="fa-solid fa-chart-line text-success"></i> Doanh thu & Lợi nhuận (7 ngày qua)</span>
+            <span class="text-muted" style="font-size: 13px;">Đơn vị: VNĐ</span>
+        </div>
+        <div style="height: 300px; position: relative;">
+            <canvas id="revenueProfitChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Kitchen & Order Status Overview -->
+    <div class="glass-panel" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="panel-header">
+                <span class="panel-title"><i class="fa-solid fa-bell text-warning"></i> Trạng thái vận hành</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px;">
+                    <span style="font-size: 14px;"><i class="fa-solid fa-fire-burner text-danger" style="margin-right: 8px;"></i> Đơn hàng đang nấu</span>
+                    <span class="badge bg-danger text-white px-2 py-1 rounded" style="font-size: 14px;">@cookingOrders</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px;">
+                    <span style="font-size: 14px;"><i class="fa-solid fa-hourglass-half text-warning" style="margin-right: 8px;"></i> Đơn chờ thanh toán</span>
+                    <span class="badge bg-warning text-dark px-2 py-1 rounded" style="font-size: 14px;">@pendingPaymentOrders</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px;">
+                    <span style="font-size: 14px;"><i class="fa-solid fa-user-check text-success" style="margin-right: 8px;"></i> Nhân sự trực ca hôm nay</span>
+                    <span class="badge bg-success text-white px-2 py-1 rounded" style="font-size: 14px;">@activeEmployeesCount</span>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 20px; padding: 12px; background: rgba(16, 185, 129, 0.05); border: 1px dashed rgba(16, 185, 129, 0.2); border-radius: 8px;">
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 0;">
+                <i class="fa-solid fa-circle-info text-success" style="margin-right: 5px;"></i>
+                Hệ thống đang hoạt động ổn định. Máy in bếp và cổng thanh toán VietQR trực tuyến.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Row: Top Sellers & Warnings -->
+<div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+    <!-- Top Selling Dishes -->
+    <div class="glass-panel">
+        <div class="panel-header">
+            <span class="panel-title"><i class="fa-solid fa-crown text-warning"></i> Món ăn bán chạy</span>
+        </div>
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Món ăn</th>
+                        <th>Số lượng bán</th>
+                        <th>Doanh thu thu về</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (topSellers != null)
+                    {
+                        foreach (var item in topSellers)
+                        {
+                            <tr>
+                                <td><strong>@item.Name</strong></td>
+                                <td>@item.Qty</td>
+                                <td class="text-success">@item.Revenue.ToString("N0")đ</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">Chưa có dữ liệu giao dịch hôm nay.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Inventory Alerts -->
+    <div class="glass-panel">
+        <div class="panel-header">
+            <span class="panel-title"><i class="fa-solid fa-triangle-exclamation text-danger"></i> Cảnh báo nguyên liệu sắp hết</span>
+        </div>
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Nguyên liệu</th>
+                        <th>Tồn kho hiện tại</th>
+                        <th>Mức tối thiểu</th>
+                        <th>Đơn vị</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (lowStockList != null && lowStockList.Count > 0)
+                    {
+                        foreach (var ing in lowStockList)
+                        {
+                            <tr>
+                                <td><span class="text-danger">@ing.Name</span></td>
+                                <td><strong>@ing.StockQty.ToString("N2")</strong></td>
+                                <td>@ing.ReorderLevel.ToString("N2")</td>
+                                <td><span class="badge bg-secondary">@ing.Unit</span></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center text-muted"><i class="fa-regular fa-circle-check text-success"></i> Hàng trong kho đầy đủ.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- CRM & Roster Feedback -->
+<div class="glass-panel">
+    <div class="panel-header">
+        <span class="panel-title"><i class="fa-regular fa-comment-dots text-primary"></i> Đánh giá khách hàng & Phản hồi gần đây</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+        <div style="background: rgba(255,255,255,0.02); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <strong>Nguyễn Văn A (Gold Member)</strong>
+                <span class="text-warning">★★★★★</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-muted);">"Phở bò nước dùng ngọt thanh, thịt bò mềm. Phục vụ nhanh và thân thiện."</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.02); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <strong>Lê Hoàng C (VIP Member)</strong>
+                <span class="text-warning">★★★★☆</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-muted);">"Món ăn bò lúc lắc ướp đậm đà nhưng khoai tây chiên hơi nguội tí. Bàn VIP ngồi rất thoải mái."</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- ChartJS library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var ctx = document.getElementById('revenueProfitChart').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [@Html.Raw(ViewData["ChartLabels"])],
+                    datasets: [
+                        {
+                            label: 'Doanh thu',
+                            data: [@ViewData["ChartRevenue"]],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'Lợi nhuận',
+                            data: [@ViewData["ChartProfit"]],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#9ca3af',
+                                callback: function(value) {
+                                    return value.toLocaleString() + 'đ';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#9ca3af'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f3f4f6'
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

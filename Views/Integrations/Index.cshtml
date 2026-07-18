@@ -1,0 +1,180 @@
+@using Quanan.Controllers
+@{
+    ViewData["Title"] = "Liên Kết Tích Hợp Hệ Thống & AI";
+    var avgDailySales = (decimal)ViewData["AvgDailySales"];
+    var forecastTomorrow = (decimal)ViewData["ForecastTomorrow"];
+    var forecastWeek = (decimal)ViewData["ForecastWeek"];
+    var aiRec = ViewData["AIRecommendation"] as string;
+    var notifications = ViewData["NotificationLogs"] as List<NotificationLog>;
+}
+
+<div class="pos-container" style="grid-template-columns: 1fr 1fr; height: auto;">
+    
+    <!-- Left Column: AI Forecasts & Chatbot -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- AI Forecasting panel -->
+        <div class="glass-panel">
+            <div class="panel-header">
+                <span class="panel-title"><i class="fa-solid fa-brain text-success"></i> AI Dự báo doanh thu & Nhu cầu nhập hàng</span>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <span style="font-size: 11px; color: var(--text-muted); display: block;">Dự báo doanh thu ngày mai</span>
+                    <strong style="font-size: 18px; color: var(--accent-color);">@forecastTomorrow.ToString("N0")đ</strong>
+                    <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 4px;">(+5% so với TB ngày)</span>
+                </div>
+                <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <span style="font-size: 11px; color: var(--text-muted); display: block;">Dự báo doanh thu tuần tới</span>
+                    <strong style="font-size: 18px; color: #3b82f6;">@forecastWeek.ToString("N0")đ</strong>
+                    <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 4px;">(Dựa trên xu hướng 7 ngày)</span>
+                </div>
+            </div>
+
+            <div style="background: rgba(16, 185, 129, 0.05); border: 1px dashed rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 14px;">
+                <strong style="font-size: 13px; color: var(--accent-color); display: block; margin-bottom: 6px;"><i class="fa-solid fa-lightbulb"></i> Khuyến nghị AI (Đề xuất kho)</strong>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 0;">@aiRec</p>
+            </div>
+        </div>
+
+        <!-- AI Assistant Chatbot -->
+        <div class="glass-panel" style="display: flex; flex-direction: column; flex: 1;">
+            <div class="panel-header">
+                <span class="panel-title"><i class="fa-solid fa-robot text-primary"></i> Trợ lý ảo AI Manager Chatbot</span>
+            </div>
+
+            <!-- Chat window box -->
+            <div id="chatHistory" style="flex: 1; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; min-height: 200px; max-height: 250px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="background: var(--bg-tertiary); padding: 10px; border-radius: 8px; align-self: flex-start; max-width: 85%; font-size: 13px; border: 1px solid var(--border-color);">
+                    Xin chào! Tôi là **AI Assistant**. Bạn có thể hỏi tôi về các thông số cửa hàng như: *doanh thu hôm nay*, *món bán chạy nhất*, *số bàn đang phục vụ*, *nhân viên làm việc*, hoặc *cảnh báo tồn kho*.
+                </div>
+            </div>
+
+            <!-- Input area -->
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="chatInput" class="form-control" placeholder="Hỏi AI: Doanh thu hôm nay bao nhiêu?..." onkeydown="if(event.key === 'Enter') submitChatQuery()" />
+                <button type="button" class="btn-accent" onclick="submitChatQuery()"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Right Column: QR Order, Deliveries & Logs -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Online orders simulator -->
+        <div class="glass-panel">
+            <div class="panel-header">
+                <span class="panel-title"><i class="fa-solid fa-earth-americas text-warning"></i> Giả lập Kênh Online (GrabFood, ShopeeFood, QR Order)</span>
+            </div>
+            
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Kích hoạt các nút bên dưới để gửi đơn trực tiếp từ các đối tác online hoặc khách tự quét mã QR tại bàn vào màn hình nấu nhà bếp.</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn-outline" style="justify-content: space-between; display: flex; align-items: center; border-color: #00b14f; color: #00b14f;" onclick="triggerSimulatedOrder('GrabFood')">
+                    <span><i class="fa-solid fa-bag-shopping" style="margin-right: 8px;"></i> Mô phỏng đơn hàng mới từ **GrabFood**</span>
+                    <span class="badge bg-success text-white px-2 py-1 rounded" style="font-size: 11px;">Mô phỏng</span>
+                </button>
+                <button class="btn-outline" style="justify-content: space-between; display: flex; align-items: center; border-color: #ee4d2d; color: #ee4d2d;" onclick="triggerSimulatedOrder('ShopeeFood')">
+                    <span><i class="fa-solid fa-store" style="margin-right: 8px;"></i> Mô phỏng đơn hàng mới từ **ShopeeFood**</span>
+                    <span class="badge bg-danger text-white px-2 py-1 rounded" style="font-size: 11px;">Mô phỏng</span>
+                </button>
+                <button class="btn-outline" style="justify-content: space-between; display: flex; align-items: center; border-color: var(--accent-color); color: var(--accent-color);" onclick="triggerSimulatedOrder('QR Order')">
+                    <span><i class="fa-solid fa-qrcode" style="margin-right: 8px;"></i> Mô phỏng Khách tự quét **QR Order tại Bàn 01**</span>
+                    <span class="badge bg-primary text-white px-2 py-1 rounded" style="font-size: 11px;">Mô phỏng</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Notification logs -->
+        <div class="glass-panel">
+            <div class="panel-header">
+                <span class="panel-title"><i class="fa-solid fa-comment-sms text-primary"></i> Nhật ký gửi thông báo (SMS, Email, Zalo)</span>
+            </div>
+            
+            <div class="data-table-container">
+                <table class="data-table" style="font-size: 12px;">
+                    <thead>
+                        <tr style="background: rgba(255,255,255,0.01);">
+                            <th>Thời gian</th>
+                            <th>Kênh</th>
+                            <th>Người nhận</th>
+                            <th>Nội dung gửi đi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in notifications)
+                        {
+                            var chanClass = log.Channel == "Zalo" ? "bg-info text-white" 
+                                : (log.Channel == "SMS" ? "bg-success text-white" : "bg-primary text-white");
+                            <tr>
+                                <td>@log.Time.ToString("HH:mm")</td>
+                                <td><span class="badge @chanClass px-2 py-0.5 rounded" style="font-size: 10px;">@log.Channel</span></td>
+                                <td><strong>@log.Target</strong></td>
+                                <td style="color: var(--text-muted); font-size: 11px;">@log.Content</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        // Natural language query AI Chatbot submit
+        function submitChatQuery() {
+            var inp = document.getElementById('chatInput');
+            var prompt = inp.value.trim();
+            if (!prompt) return;
+
+            // 1. Append user prompt to chat
+            var chatHistory = document.getElementById('chatHistory');
+            chatHistory.innerHTML += '<div style="background: var(--bg-secondary); padding: 10px; border-radius: 8px; align-self: flex-end; max-width: 85%; font-size: 13px; border: 1px solid var(--border-color); color:var(--accent-color);">' + prompt + '</div>';
+            
+            inp.value = "";
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            // 2. AJAX Request
+            $.ajax({
+                url: '/Integrations/ChatbotQuery',
+                type: 'POST',
+                data: { prompt: prompt },
+                success: function(res) {
+                    // 3. Append reply back
+                    chatHistory.innerHTML += '<div style="background: var(--bg-tertiary); padding: 10px; border-radius: 8px; align-self: flex-start; max-width: 85%; font-size: 13px; border: 1px solid var(--border-color);">' + res.reply + '</div>';
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                },
+                error: function() {
+                    chatHistory.innerHTML += '<div style="background: var(--bg-tertiary); padding: 10px; border-radius: 8px; align-self: flex-start; max-width: 85%; font-size: 13px; border: 1px solid var(--status-locked); color:var(--status-locked);">Lỗi kết nối máy chủ AI.</div>';
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                }
+            });
+        }
+
+        // Trigger Simulated Order injection
+        function triggerSimulatedOrder(source) {
+            if (confirm("Kích hoạt đơn hàng mô phỏng từ nguồn '" + source + "'?")) {
+                $.ajax({
+                    url: '/Integrations/SimulateOnlineOrder',
+                    type: 'POST',
+                    data: { source: source },
+                    success: function(res) {
+                        if (res.success) {
+                            alert("Mô phỏng thành công! Đơn hàng đã được đẩy trực tiếp vào hàng đợi bếp (KDS). Bạn có thể kiểm tra ở mục 'Màn hình bếp'.");
+                        } else {
+                            alert("Lỗi: " + res.message);
+                        }
+                    },
+                    error: function() {
+                        alert("Lỗi kết nối tới server.");
+                    }
+                });
+            }
+        }
+    </script>
+}

@@ -1,0 +1,220 @@
+@model Quanan.Models.Order
+@{
+    Layout = null; // No global sidebar layout for print view
+    var vat = Model.TotalAmount * 0.08m;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hóa đơn thanh toán - HD-@Model.Id</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .receipt-container {
+            width: 380px;
+            background-color: #ffffff;
+            color: #000000;
+            padding: 24px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .separator {
+            border-top: 1px dashed #000000;
+            margin: 12px 0;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 4px;
+            font-size: 13px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .items-table th, .items-table td {
+            padding: 6px 0;
+        }
+
+        .totals-section {
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .barcode {
+            font-family: 'Libre Barcode 39', sans-serif;
+            font-size: 32px;
+            letter-spacing: 2px;
+            margin-top: 16px;
+            display: block;
+            text-align: center;
+        }
+
+        .btn-panel {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            font-family: 'Outfit', sans-serif;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            font-weight: 600;
+        }
+
+        .btn-print { background-color: #10b981; color: white; }
+        .btn-back { background-color: #4b5563; color: white; }
+
+        @@media print {
+            body { background-color: #ffffff; padding: 0; }
+            .receipt-container { box-shadow: none; width: 100%; }
+            .btn-panel { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="receipt-container">
+        <!-- Restaurant Details -->
+        <div class="text-center">
+            <div class="header-title">ẨM THỰC VIỆT PREMIUM</div>
+            <div style="font-size: 12px;">Đống Đa, Hà Nội, Việt Nam</div>
+            <div style="font-size: 12px;">SĐT: 090-999-9999</div>
+        </div>
+
+        <div class="separator"></div>
+
+        <!-- Receipt metadata -->
+        <div class="details-grid">
+            <span>Bàn:</span> <strong>@(Model.Table?.TableNumber ?? "Mang đi")</strong>
+            <span>Hóa đơn:</span> <span>HD-@Model.Id</span>
+            <span>Giờ vào:</span> <span>@Model.OrderTime.AddMinutes(-40).ToString("dd/MM/yyyy HH:mm")</span>
+            <span>Giờ ra:</span> <span>@Model.OrderTime.ToString("dd/MM/yyyy HH:mm")</span>
+            <span>Thu ngân:</span> <span>Thu Ngân (Trần B)</span>
+            <span>Khách hàng:</span> <span>@(Model.Customer?.Name ?? "Khách vãng lai")</span>
+        </div>
+
+        <div class="separator"></div>
+
+        <!-- Order Items -->
+        <table class="items-table">
+            <thead>
+                <tr style="border-bottom: 1px dashed #000;">
+                    <th style="text-align: left;">Món ăn</th>
+                    <th style="text-align: center; width: 40px;">SL</th>
+                    <th style="text-align: right; width: 80px;">Đ.Giá</th>
+                    <th style="text-align: right; width: 90px;">T.Tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.OrderItems)
+                {
+                    var optText = string.Join(", ", item.OrderItemOptions.Select(o => o.OptionName));
+                    <tr>
+                        <td style="vertical-align: top;">
+                            <div>@item.MenuItem?.Name</div>
+                            @if (!string.IsNullOrEmpty(optText))
+                            {
+                                <div style="font-size: 11px; font-style: italic;">* @optText</div>
+                            }
+                            @if (!string.IsNullOrEmpty(item.Notes))
+                            {
+                                <div style="font-size: 11px; font-style: italic;">Note: @item.Notes</div>
+                            }
+                        </td>
+                        <td style="text-align: center; vertical-align: top;">@item.Quantity</td>
+                        <td style="text-align: right; vertical-align: top;">@item.Price.ToString("N0")</td>
+                        <td style="text-align: right; vertical-align: top; font-weight: 600;">@((item.Price * item.Quantity).ToString("N0"))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="separator"></div>
+
+        <!-- Totals Summary -->
+        <div class="totals-section">
+            <div class="total-row">
+                <span>Cộng tiền món:</span>
+                <span>@Model.TotalAmount.ToString("N0")đ</span>
+            </div>
+            <div class="total-row">
+                <span>Giảm giá (Voucher):</span>
+                <span>-@Model.DiscountAmount.ToString("N0")đ</span>
+            </div>
+            <div class="total-row">
+                <span>Thuế VAT (8%):</span>
+                <span>@vat.ToString("N0")đ</span>
+            </div>
+            <div class="total-row" style="font-size: 16px; font-weight: 700;">
+                <span>TỔNG THANH TOÁN:</span>
+                <span>@Model.FinalAmount.ToString("N0")đ</span>
+            </div>
+            <div class="total-row" style="font-size: 12px; margin-top: 6px;">
+                <span>Thanh toán:</span>
+                <span>@Model.PaymentMethod</span>
+            </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <!-- Footer -->
+        <div class="text-center" style="font-size: 12px; font-style: italic;">
+            Cảm ơn quý khách. Hẹn gặp lại!<br>
+            Powered by Ẩm Thực Việt MVC
+        </div>
+
+        <!-- Simulated Barcode image or text -->
+        <div class="text-center" style="margin-top: 15px;">
+            <div style="font-size: 10px; color: #4b5563;">*HD-@Model.Id-F&B*</div>
+            <div style="background-color: #000; height: 35px; width: 220px; display: inline-block; margin-top: 6px; background: repeating-linear-gradient(90deg, #000, #000 2px, #fff 2px, #fff 5px);"></div>
+        </div>
+    </div>
+
+    <!-- Print control buttons -->
+    <div class="btn-panel">
+        <button class="btn btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> In Hóa Đơn</button>
+        <a href="/Table/Index" class="btn btn-back">Quay lại sơ đồ bàn</a>
+    </div>
+
+</body>
+</html>

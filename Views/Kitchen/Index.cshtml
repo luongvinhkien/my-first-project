@@ -1,0 +1,205 @@
+@using Quanan.Models
+@{
+    ViewData["Title"] = "Màn hình chế biến (Kitchen Display)";
+    var activeSection = ViewData["ActiveSection"] as string;
+    var orderItems = ViewData["OrderItems"] as List<OrderItem>;
+
+    var pendingItems = orderItems.Where(oi => oi.Status == "Pending").ToList();
+    var cookingItems = orderItems.Where(oi => oi.Status == "Cooking").ToList();
+    var finishedItems = orderItems.Where(oi => oi.Status == "Finished").ToList();
+}
+
+<!-- Section switcher header -->
+<div class="glass-panel" style="padding: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; gap: 10px;">
+        <a href="/Kitchen/Index?section=Bếp" class="area-tab @(activeSection == "Bếp" ? "active" : "")" style="text-decoration: none;">
+            <i class="fa-solid fa-fire text-danger"></i> KHU VỰC BẾP (MÓN ĂN)
+        </a>
+        <a href="/Kitchen/Index?section=Bar" class="area-tab @(activeSection == "Bar" ? "active" : "")" style="text-decoration: none;">
+            <i class="fa-solid fa-wine-glass text-info"></i> KHU VỰC QUẦY BAR (NƯỚC UỐNG)
+        </a>
+    </div>
+    <div style="font-size: 13px; color: var(--text-muted);">
+        <span class="badge bg-success text-white px-2 py-1"><i class="fa-solid fa-rotate"></i> Tự động cập nhật (mỗi 10 giây)</span>
+    </div>
+</div>
+
+<!-- KDS Columns Container -->
+<div class="kds-container">
+
+    <!-- Column 1: Món mới (Chờ nấu) -->
+    <div class="kds-column">
+        <div class="kds-column-header" style="border-top: 4px solid var(--status-reserved);">
+            <span><i class="fa-regular fa-bell text-primary"></i> MÓN MỚI CHỜ NẤU</span>
+            <span class="kds-column-badge bg-primary text-white">@pendingItems.Count</span>
+        </div>
+        <div class="kds-cards-list">
+            @foreach (var item in pendingItems)
+            {
+                var optText = string.Join(", ", item.OrderItemOptions.Select(o => o.OptionName));
+                <div class="kds-ticket-card new">
+                    <div class="kds-ticket-header">
+                        <span>@item.Order?.Table?.TableNumber</span>
+                        <span class="kds-ticket-time">@item.Order?.OrderTime.ToString("HH:mm")</span>
+                    </div>
+                    <div class="kds-ticket-items">
+                        <div style="font-size: 16px; font-weight: 600;">
+                            <span class="text-success">@item.Quantity x</span> @item.MenuItem?.Name
+                        </div>
+                        @if (!string.IsNullOrEmpty(optText))
+                        {
+                            <div style="font-size: 12px; color: var(--accent-color); margin-top: 4px;">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> @optText
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Notes))
+                        {
+                            <div style="background: rgba(245,158,11,0.05); border-left: 2px solid #f59e0b; padding: 4px 8px; margin-top: 6px; font-size: 12px; font-style: italic; color: #f59e0b;">
+                                <i class="fa-regular fa-comment"></i> Ghi chú: "@item.Notes"
+                            </div>
+                        }
+                    </div>
+                    <div class="kds-ticket-footer">
+                        <form asp-action="StartCooking" method="post" style="width: 100%;">
+                            <input type="hidden" name="orderItemId" value="@item.Id" />
+                            <input type="hidden" name="section" value="@activeSection" />
+                            <button type="submit" class="btn-accent" style="width: 100%; justify-content: center; padding: 6px;">
+                                Bắt đầu chế biến
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Column 2: Đang nấu -->
+    <div class="kds-column">
+        <div class="kds-column-header" style="border-top: 4px solid var(--status-cleaning);">
+            <span><i class="fa-solid fa-fire-burner text-warning"></i> ĐANG CHẾ BIẾN</span>
+            <span class="kds-column-badge bg-warning text-dark">@cookingItems.Count</span>
+        </div>
+        <div class="kds-cards-list">
+            @foreach (var item in cookingItems)
+            {
+                var optText = string.Join(", ", item.OrderItemOptions.Select(o => o.OptionName));
+                var minutesCooking = item.CookingStartTime.HasValue 
+                    ? (int)(DateTime.Now - item.CookingStartTime.Value).TotalMinutes 
+                    : 0;
+                var alertClass = minutesCooking >= 8 ? "text-danger font-weight-bold" : "text-warning";
+
+                <div class="kds-ticket-card cooking" style="@(minutesCooking >= 8 ? "border-color: var(--status-locked); box-shadow: 0 0 10px rgba(239, 68, 68, 0.15);" : "")">
+                    <div class="kds-ticket-header">
+                        <span>@item.Order?.Table?.TableNumber</span>
+                        <!-- Timer indicator -->
+                        <span class="kds-ticket-time @alertClass">
+                            <i class="fa-regular fa-clock"></i> <span class="cooking-timer" data-start="@(item.CookingStartTime.HasValue ? item.CookingStartTime.Value.ToString("o") : "")">@minutesCooking ph</span>
+                        </span>
+                    </div>
+                    <div class="kds-ticket-items">
+                        <div style="font-size: 16px; font-weight: 600;">
+                            <span class="text-success">@item.Quantity x</span> @item.MenuItem?.Name
+                        </div>
+                        @if (!string.IsNullOrEmpty(optText))
+                        {
+                            <div style="font-size: 12px; color: var(--accent-color); margin-top: 4px;">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> @optText
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Notes))
+                        {
+                            <div style="background: rgba(245,158,11,0.05); border-left: 2px solid #f59e0b; padding: 4px 8px; margin-top: 6px; font-size: 12px; font-style: italic; color: #f59e0b;">
+                                <i class="fa-regular fa-comment"></i> Ghi chú: "@item.Notes"
+                            </div>
+                        }
+                    </div>
+                    <div class="kds-ticket-footer">
+                        <form asp-action="FinishCooking" method="post" style="width: 100%;">
+                            <input type="hidden" name="orderItemId" value="@item.Id" />
+                            <input type="hidden" name="section" value="@activeSection" />
+                            <button type="submit" class="btn-accent" style="width: 100%; justify-content: center; background-color: var(--status-cleaning); color: #000; padding: 6px;">
+                                Hoàn thành (Báo ra món)
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Column 3: Hoàn thành (Chờ phục vụ) -->
+    <div class="kds-column">
+        <div class="kds-column-header" style="border-top: 4px solid var(--status-serving);">
+            <span><i class="fa-regular fa-circle-check text-success"></i> ĐÃ XONG (CHỜ RA MÓN)</span>
+            <span class="kds-column-badge bg-success text-white">@finishedItems.Count</span>
+        </div>
+        <div class="kds-cards-list">
+            @foreach (var item in finishedItems)
+            {
+                var optText = string.Join(", ", item.OrderItemOptions.Select(o => o.OptionName));
+                <div class="kds-ticket-card finished">
+                    <div class="kds-ticket-header">
+                        <span>@item.Order?.Table?.TableNumber</span>
+                        <span class="kds-ticket-time text-success"><i class="fa-solid fa-circle-check"></i> Xong</span>
+                    </div>
+                    <div class="kds-ticket-items">
+                        <div style="font-size: 16px; font-weight: 600;">
+                            <span class="text-success">@item.Quantity x</span> @item.MenuItem?.Name
+                        </div>
+                        @if (!string.IsNullOrEmpty(optText))
+                        {
+                            <div style="font-size: 12px; color: var(--accent-color); margin-top: 4px;">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> @optText
+                            </div>
+                        }
+                    </div>
+                    <div class="kds-ticket-footer">
+                        <form asp-action="MarkAsServed" method="post" style="width: 100%;">
+                            <input type="hidden" name="orderItemId" value="@item.Id" />
+                            <input type="hidden" name="section" value="@activeSection" />
+                            <button type="submit" class="btn-accent" style="width: 100%; justify-content: center; padding: 6px;">
+                                <i class="fa-solid fa-bell-concierge"></i> Xác nhận đã phục vụ
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        // Automatic screen reload every 10 seconds to fetch new orders
+        setInterval(function() {
+            location.reload();
+        }, 10000);
+
+        // Update timers in minutes dynamically
+        document.addEventListener("DOMContentLoaded", function() {
+            function updateTimers() {
+                var timers = document.querySelectorAll('.cooking-timer');
+                timers.forEach(t => {
+                    var startStr = t.getAttribute('data-start');
+                    if (startStr) {
+                        var start = new Date(startStr);
+                        var now = new Date();
+                        var diffMs = now - start;
+                        var diffMins = Math.floor(diffMs / 60000);
+                        t.innerText = diffMins + " ph";
+
+                        // If cooking duration goes past 8 mins, highlight
+                        if (diffMins >= 8) {
+                            t.parentElement.className = "kds-ticket-time text-danger font-weight-bold";
+                            t.closest('.kds-ticket-card').style.borderColor = "var(--status-locked)";
+                            t.closest('.kds-ticket-card').style.boxShadow = "0 0 10px rgba(239, 68, 68, 0.15)";
+                        }
+                    }
+                });
+            }
+            updateTimers();
+            setInterval(updateTimers, 60000); // Check once per minute
+        });
+    </script>
+}

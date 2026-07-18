@@ -1,0 +1,532 @@
+@using Quanan.Models
+@{
+    ViewData["Title"] = "Giao diện Phục vụ (Order POS)";
+    var categories = ViewData["Categories"] as List<Category>;
+    var menuItems = ViewData["MenuItems"] as List<MenuItem>;
+    var activeTables = ViewData["ActiveTables"] as List<Table>;
+    var areas = ViewData["Areas"] as List<Area>;
+    
+    var currentTable = ViewData["CurrentTable"] as Table;
+    var activeOrder = ViewData["ActiveOrder"] as Order;
+}
+
+<div class="pos-container">
+    
+    <!-- Active Cart Panel (Left side) -->
+    <div class="pos-cart-panel glass-panel">
+        <div class="panel-header" style="margin-bottom: 12px;">
+            <span class="panel-title">
+                <i class="fa-solid fa-cart-flatbed text-success"></i> 
+                Giỏ hàng: @(currentTable != null ? currentTable.TableNumber : "Chưa chọn bàn")
+            </span>
+            @if (currentTable != null)
+            {
+                <span class="badge bg-success text-white">@currentTable.Status</span>
+            }
+        </div>
+
+        @if (currentTable == null)
+        {
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text-muted);">
+                <i class="fa-solid fa-table text-muted" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <p style="font-size: 15px; margin-bottom: 16px;">Vui lòng chọn một bàn đang hoạt động để order món ăn.</p>
+                <select onchange="location.href='/Order/Index?tableId=' + this.value" class="form-control" style="max-width: 250px;">
+                    <option value="">-- Chọn bàn phục vụ --</option>
+                    @foreach (var tbl in activeTables)
+                    {
+                        <option value="@tbl.Id">@tbl.TableNumber</option>
+                    }
+                </select>
+            </div>
+        }
+        else if (activeOrder == null || activeOrder.OrderItems == null || activeOrder.OrderItems.Count == 0)
+        {
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text-muted);">
+                <i class="fa-regular fa-folder-open text-muted" style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;"></i>
+                <p style="font-size: 14px;">Giỏ hàng rỗng. Hãy chọn món từ thực đơn bên phải.</p>
+            </div>
+            
+            <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: auto;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span class="text-muted">Tổng cộng:</span>
+                    <strong style="font-size: 18px; color: var(--accent-color);">0đ</strong>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Scrollable list of items -->
+            <div class="cart-items-list">
+                @foreach (var item in activeOrder.OrderItems)
+                {
+                    var optText = string.Join(", ", item.OrderItemOptions.Select(o => o.OptionName));
+                    <div class="cart-item">
+                        <div class="cart-item-info" style="flex: 1; margin-right: 12px;">
+                            <h4>@item.MenuItem?.Name</h4>
+                            @if (!string.IsNullOrEmpty(optText))
+                            {
+                                <div style="font-size: 12px; color: var(--accent-color); margin-top: 2px;">
+                                    <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 10px;"></i> @optText
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(item.Notes))
+                            {
+                                <div class="cart-item-notes"><i class="fa-regular fa-comment"></i> @item.Notes</div>
+                            }
+                            <span class="badge @(item.Status == "Pending" ? "bg-secondary text-white" : (item.Status == "Cooking" ? "bg-warning text-dark" : (item.Status == "Finished" ? "bg-success text-white" : "bg-primary text-white")))" style="font-size: 10px; margin-top: 4px;">
+                                @if(item.Status == "Pending") { @:Chưa gửi bếp
+                                } else if(item.Status == "Cooking") { @:Đang chế biến
+                                } else if(item.Status == "Finished") { @:Hoàn thành
+                                } else if(item.Status == "Served") { @:Đã phục vụ
+                                }
+                            </span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                            <div class="cart-item-qty">
+                                @if (item.Status == "Pending")
+                                {
+                                    <button class="qty-btn" onclick="updateQty(@item.Id, @(item.Quantity - 1))">-</button>
+                                    <span style="font-weight: 600; font-size: 14px; min-width: 20px; text-align: center;">@item.Quantity</span>
+                                    <button class="qty-btn" onclick="updateQty(@item.Id, @(item.Quantity + 1))">+</button>
+                                    <button class="qty-btn" onclick="removeItem(@item.Id)" style="background-color: rgba(239, 68, 68, 0.15); color: var(--status-locked); margin-left: 5px;"><i class="fa-regular fa-trash-can" style="font-size: 11px;"></i></button>
+                                }
+                                else
+                                {
+                                    <span style="font-size: 13px; color: var(--text-muted);">SL: <strong>@item.Quantity</strong></span>
+                                }
+                            </div>
+                            <strong style="font-size: 14px; color: var(--text-main);">@((item.Price * item.Quantity).ToString("N0"))đ</strong>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Cart Footer Sum -->
+            <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: auto;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                    <span class="text-muted" style="font-size: 15px;">Tổng cộng:</span>
+                    <strong style="font-size: 20px; color: var(--accent-color);">@activeOrder.TotalAmount.ToString("N0")đ</strong>
+                </div>
+
+                @if (activeOrder.OrderItems.Any(oi => oi.Status == "Pending"))
+                {
+                    <form asp-action="SendToKitchen" method="post">
+                        <input type="hidden" name="orderId" value="@activeOrder.Id" />
+                        <button type="submit" class="btn-accent" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px;">
+                            <i class="fa-solid fa-kitchen-set"></i> GỬI YÊU CẦU ĐẾN BẾP / BAR
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <button class="btn-accent" style="width: 100%; justify-content: center; background-color: var(--status-empty); cursor: not-allowed; padding: 12px;" disabled>
+                        <i class="fa-regular fa-circle-check"></i> ĐÃ GỬI BẾP (CHỜ PHỤC VỤ)
+                    </button>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Menu Items Section (Right side) -->
+    <div class="pos-menu-panel glass-panel">
+        <div class="menu-search-bar">
+            <!-- Area & Table 2-Step Selector -->
+            <select id="posAreaSelect" onchange="filterPosTables()" class="form-control" style="max-width: 155px; font-weight: 600; border-color: var(--accent-color); font-size: 13px;">
+                <option value="">-- Chọn khu vực --</option>
+                @foreach (var area in areas)
+                {
+                    <!option value="@area.Id" @(currentTable != null && currentTable.AreaId == area.Id ? "selected" : "")>@area.Name</!option>
+                }
+            </select>
+
+            <select id="posTableSelect" onchange="if(this.value) location.href='/Order/Index?tableId=' + this.value" class="form-control" style="max-width: 135px; font-weight: 600; border-color: var(--accent-color); font-size: 13px;">
+                <option value="">-- Chọn bàn --</option>
+            </select>
+
+            <div style="position: relative; flex: 1;">
+                <input type="text" id="menuSearchInput" onkeyup="searchMenu()" class="form-control" placeholder="Tìm tên món ăn, mã món, barcode..." style="padding-left: 36px;" />
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 12px; color: var(--text-muted);"></i>
+            </div>
+        </div>
+
+        <!-- Category selector tabs -->
+        <div class="menu-categories">
+            <div class="area-tab active" onclick="filterCategory('all', this)">Tất cả</div>
+            @foreach (var cat in categories)
+            {
+                <div class="area-tab" onclick="filterCategory('cat-@cat.Id', this)">@cat.Name</div>
+            }
+        </div>
+
+        <!-- Menu Item Cards -->
+        <div class="menu-items-grid">
+            @foreach (var item in menuItems)
+            {
+                <div class="menu-item-card menu-item-entity cat-@item.CategoryId" 
+                     data-name="@item.Name.ToLower()" 
+                     data-code="@item.Code.ToLower()" 
+                     data-barcode="@(item.Barcode?.ToLower() ?? "")"
+                     onclick="openModifiersModal(@item.Id, '@item.Name', @item.Price, '@Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(item.MenuItemOptions.Select(o => new { o.Id, o.GroupName, o.OptionName, o.ExtraPrice })))')">
+                    
+                    <div class="menu-item-image" style="background-image: url('@(string.IsNullOrEmpty(item.ImageUrl) ? "" : item.ImageUrl)'); background-size: cover; background-position: center; border-radius: 8px;">
+                        @if (string.IsNullOrEmpty(item.ImageUrl))
+                        {
+                            <i class="fa-solid fa-bowl-food"></i>
+                        }
+                    </div>
+                    <div>
+                        <div class="menu-item-name">@item.Name</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                            <span style="font-size:11px; color:var(--text-muted);">@item.Code</span>
+                            <span class="menu-item-price">@item.Price.ToString("N0")đ</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Custom Modifier Options Selector -->
+<div id="modifiersModal" class="modal-overlay" onclick="closeModifiersModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title" id="modItemName">Tên Món Ăn</span>
+            <span class="modal-close" onclick="closeModifiersModal(null)">&times;</span>
+        </div>
+        
+        <div style="max-height: 400px; overflow-y: auto; padding-right: 4px;">
+            <input type="hidden" id="modItemId" />
+            <input type="hidden" id="modBasePrice" />
+
+            <!-- Dynamic groups will be injected here -->
+            <div id="dynamicModifiersContainer"></div>
+
+            <!-- Notes Section -->
+            <div class="form-group" style="margin-top: 15px;">
+                <label><i class="fa-regular fa-note-sticky"></i> Ghi chú chế biến bếp (Ví dụ: Không hành, Ít cay)</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                    <span class="area-tab" style="padding: 4px 10px; font-size: 12px;" onclick="addNoteTemplate('Không hành')">Không hành</span>
+                    <span class="area-tab" style="padding: 4px 10px; font-size: 12px;" onclick="addNoteTemplate('Ít cay')">Ít cay</span>
+                    <span class="area-tab" style="padding: 4px 10px; font-size: 12px;" onclick="addNoteTemplate('Không tiêu')">Không tiêu</span>
+                    <span class="area-tab" style="padding: 4px 10px; font-size: 12px;" onclick="addNoteTemplate('Thêm nước chấm')">Thêm nước chấm</span>
+                </div>
+                <input type="text" id="modNotes" class="form-control" placeholder="Nhập ghi chú chi tiết..." />
+            </div>
+
+            <!-- Quantity select -->
+            <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <span style="font-weight: 500;">Số lượng đặt:</span>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button type="button" class="qty-btn" style="width: 32px; height: 32px; font-size: 16px;" onclick="adjustModQty(-1)">-</button>
+                    <span id="modQtyDisplay" style="font-size: 18px; font-weight: 700; min-width: 24px; text-align: center;">1</span>
+                    <button type="button" class="qty-btn" style="width: 32px; height: 32px; font-size: 16px;" onclick="adjustModQty(1)">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 15px;">
+            <div>
+                <span class="text-muted" style="font-size: 12px;">Tổng cộng:</span>
+                <div id="modTotalPrice" style="font-size: 20px; font-weight: 700; color: var(--accent-color);">0đ</div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeModifiersModal(null)">Hủy</button>
+                <button type="button" class="btn-accent" onclick="submitToCart()">Thêm vào giỏ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var currentActiveOrderId = @(activeOrder != null ? activeOrder.Id : 0);
+
+        // Search menu items
+        function searchMenu() {
+            var input = document.getElementById('menuSearchInput').value.toLowerCase();
+            var items = document.querySelectorAll('.menu-item-entity');
+            
+            items.forEach(item => {
+                var name = item.getAttribute('data-name');
+                var code = item.getAttribute('data-code');
+                var barcode = item.getAttribute('data-barcode');
+
+                if (name.includes(input) || code.includes(input) || barcode.includes(input)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Category filter
+        function filterCategory(catClass, element) {
+            var tabs = document.querySelectorAll('.menu-categories .area-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            element.classList.add('active');
+
+            var items = document.querySelectorAll('.menu-item-entity');
+            if (catClass === 'all') {
+                items.forEach(item => item.style.display = 'flex');
+            } else {
+                items.forEach(item => {
+                    if (item.classList.contains(catClass)) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // Modifiers control
+        var currentModifiers = [];
+        var modQty = 1;
+
+        function openModifiersModal(id, name, price, optionsJson) {
+            if (currentActiveOrderId === 0) {
+                alert("Vui lòng chọn bàn đang phục vụ trước khi thêm món!");
+                return;
+            }
+
+            document.getElementById('modItemId').value = id;
+            document.getElementById('modBasePrice').value = price;
+            document.getElementById('modItemName').innerText = name;
+            document.getElementById('modNotes').value = "";
+            modQty = 1;
+            document.getElementById('modQtyDisplay').innerText = modQty;
+
+            var options = [];
+            try {
+                options = JSON.parse(optionsJson);
+            } catch(e) {
+                options = [];
+            }
+            currentModifiers = options;
+
+            // Generate HTML grouped by GroupName
+            var container = document.getElementById('dynamicModifiersContainer');
+            container.innerHTML = "";
+
+            if (options && options.length > 0) {
+                // Group by GroupName
+                var groups = {};
+                options.forEach(opt => {
+                    if (!groups[opt.GroupName]) {
+                        groups[opt.GroupName] = [];
+                    }
+                    groups[opt.GroupName].push(opt);
+                });
+
+                for (var groupName in groups) {
+                    var groupHtml = '<div style="margin-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 10px;">';
+                    groupHtml += '<label style="display:block; font-size:13px; color:var(--text-muted); margin-bottom: 6px; font-weight: 500;">' + groupName + '</label>';
+                    groupHtml += '<div style="display:flex; flex-wrap:wrap; gap:8px;">';
+
+                    var isTopping = groupName.toLowerCase() === 'topping' || groupName.toLowerCase() === 'toppings';
+
+                    groups[groupName].forEach((opt, idx) => {
+                        var extraText = opt.ExtraPrice > 0 ? " (+" + opt.ExtraPrice.toLocaleString() + "đ)" : "";
+                        if (isTopping) {
+                            // Checkbox
+                            groupHtml += '<label class="area-tab" style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:400; padding:6px 12px; font-size:13px;">';
+                            groupHtml += '<input type="checkbox" class="mod-option-cb" data-name="' + opt.OptionName + '" data-price="' + opt.ExtraPrice + '" onchange="calculateModTotal()" style="accent-color: var(--accent-color);" /> ';
+                            groupHtml += opt.OptionName + extraText;
+                            groupHtml += '</label>';
+                        } else {
+                            // Radio buttons
+                            var checked = idx === 0 ? "checked" : "";
+                            var activeClass = idx === 0 ? "active" : "";
+                            groupHtml += '<label class="area-tab ' + activeClass + '" style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:400; padding:6px 12px; font-size:13px;">';
+                            groupHtml += '<input type="radio" name="mod-grp-' + groupName + '" class="mod-option-radio" data-name="' + opt.OptionName + '" data-price="' + opt.ExtraPrice + '" ' + checked + ' onchange="selectRadioTab(this); calculateModTotal();" style="accent-color: var(--accent-color);" /> ';
+                            groupHtml += opt.OptionName + extraText;
+                            groupHtml += '</label>';
+                        }
+                    });
+
+                    groupHtml += '</div></div>';
+                    container.innerHTML += groupHtml;
+                }
+            } else {
+                container.innerHTML = '<p style="color:var(--text-muted); font-size:13px; font-style:italic;">Không có lựa chọn tùy chỉnh nào.</p>';
+            }
+
+            calculateModTotal();
+            document.getElementById('modifiersModal').style.display = 'flex';
+        }
+
+        function selectRadioTab(radio) {
+            // Un-highlight other radio labels in the same group
+            var name = radio.name;
+            var radios = document.getElementsByName(name);
+            radios.forEach(r => {
+                r.parentElement.classList.remove('active');
+            });
+            radio.parentElement.classList.add('active');
+        }
+
+        function calculateModTotal() {
+            var basePrice = parseFloat(document.getElementById('modBasePrice').value);
+            var extraPrice = 0;
+
+            // Radios
+            var radios = document.querySelectorAll('.mod-option-radio:checked');
+            radios.forEach(r => {
+                extraPrice += parseFloat(r.getAttribute('data-price'));
+            });
+
+            // Checkboxes
+            var cbs = document.querySelectorAll('.mod-option-cb:checked');
+            cbs.forEach(c => {
+                extraPrice += parseFloat(c.getAttribute('data-price'));
+            });
+
+            var totalItemPrice = basePrice + extraPrice;
+            var finalTotal = totalItemPrice * modQty;
+            document.getElementById('modTotalPrice').innerText = finalTotal.toLocaleString() + "đ";
+        }
+
+        function adjustModQty(val) {
+            modQty += val;
+            if (modQty < 1) modQty = 1;
+            document.getElementById('modQtyDisplay').innerText = modQty;
+            calculateModTotal();
+        }
+
+        function addNoteTemplate(text) {
+            var inp = document.getElementById('modNotes');
+            if (inp.value) {
+                inp.value += ", " + text;
+            } else {
+                inp.value = text;
+            }
+        }
+
+        function closeModifiersModal(e) {
+            if (e === null || e.target === document.getElementById('modifiersModal')) {
+                document.getElementById('modifiersModal').style.display = 'none';
+            }
+        }
+
+        // Submitting to Cart
+        function submitToCart() {
+            var itemId = document.getElementById('modItemId').value;
+            var notes = document.getElementById('modNotes').value;
+            
+            // Build selected options string
+            var optStrings = [];
+
+            var radios = document.querySelectorAll('.mod-option-radio:checked');
+            radios.forEach(r => {
+                optStrings.push(r.getAttribute('data-name') + ":" + r.getAttribute('data-price'));
+            });
+
+            var cbs = document.querySelectorAll('.mod-option-cb:checked');
+            cbs.forEach(c => {
+                optStrings.push(c.getAttribute('data-name') + ":" + c.getAttribute('data-price'));
+            });
+
+            var selectedOptions = optStrings.join(",");
+
+            // AJAX request to Order/AddItem
+            $.ajax({
+                url: '/Order/AddItem',
+                type: 'POST',
+                data: {
+                    orderId: currentActiveOrderId,
+                    menuItemId: itemId,
+                    quantity: modQty,
+                    notes: notes,
+                    selectedOptions: selectedOptions
+                },
+                success: function(res) {
+                    if (res.success) {
+                        closeModifiersModal(null);
+                        // Reload POS to refresh Cart
+                        location.reload();
+                    } else {
+                        alert("Lỗi: " + res.message);
+                    }
+                },
+                error: function() {
+                    alert("Lỗi kết nối tới máy chủ.");
+                }
+            });
+        }
+
+        // Helper Cart Actions
+        function updateQty(orderItemId, val) {
+            $.ajax({
+                url: '/Order/UpdateItemQty',
+                type: 'POST',
+                data: {
+                    orderItemId: orderItemId,
+                    quantity: val
+                },
+                success: function(res) {
+                    if (res.success) {
+                        location.reload();
+                    }
+                }
+            });
+        }
+
+        function removeItem(orderItemId) {
+            if (confirm("Bạn có chắc chắn muốn xóa món này khỏi giỏ hàng?")) {
+                $.ajax({
+                    url: '/Order/RemoveItem',
+                    type: 'POST',
+                    data: {
+                        orderItemId: orderItemId
+                    },
+                    success: function(res) {
+                        if (res.success) {
+                            location.reload();
+                        }
+                    }
+                });
+            }
+        }
+
+        // 2-Step Table Selector mapping
+        var areaTablesMap = {
+            @foreach (var area in areas)
+            {
+                @:@area.Id: [
+                    @foreach (var tbl in area.Tables)
+                    {
+                        @:{ id: @tbl.Id, number: "@Html.Raw(tbl.TableNumber)", status: "@tbl.Status" },
+                    }
+                @:],
+            }
+        };
+
+        function filterPosTables() {
+            var areaId = document.getElementById('posAreaSelect').value;
+            var tableSel = document.getElementById('posTableSelect');
+            
+            // Clear current options
+            tableSel.innerHTML = '<option value="">-- Chọn bàn --</option>';
+            
+            if (areaId && areaTablesMap[areaId]) {
+                var tables = areaTablesMap[areaId];
+                tables.forEach(function(tbl) {
+                    var opt = document.createElement('option');
+                    opt.value = tbl.id;
+                    var label = tbl.number + " (" + (tbl.status === "Empty" ? "Trống" : (tbl.status === "Serving" ? "Phục vụ" : (tbl.status === "Reserved" ? "Đặt trước" : "Bận"))) + ")";
+                    opt.text = label;
+                    if (tbl.id == '@(currentTable?.Id ?? 0)') {
+                        opt.selected = true;
+                    }
+                    tableSel.appendChild(opt);
+                });
+            }
+        }
+
+        // Initialize on load
+        $(document).ready(function() {
+            filterPosTables();
+        });
+    </script>
+}

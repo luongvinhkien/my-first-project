@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Ẩm Thực Việt Premium</title>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-utensils text-success" style="font-size: 24px;"></i>
+                <span class="sidebar-logo">Ẩm Thực Việt</span>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-dashboard" href="/Home/Index">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Tổng quan</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-table" href="/Table/Index">
+                        <i class="fa-solid fa-table-cells"></i>
+                        <span>Phòng / Bàn</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-order" href="/Order/Index">
+                        <i class="fa-solid fa-desktop"></i>
+                        <span>Phục vụ (POS)</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-kitchen" href="/Kitchen/Index">
+                        <i class="fa-solid fa-kitchen-set"></i>
+                        <span>Màn hình bếp</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-payment" href="/Payment/Index">
+                        <i class="fa-solid fa-credit-card"></i>
+                        <span>Thanh toán</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-menu" href="/Menu/Index">
+                        <i class="fa-solid fa-book-open"></i>
+                        <span>Thực đơn (Menu)</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-crm" href="/Crm/Index">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Khách hàng (CRM)</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-inventory" href="/Inventory/Index">
+                        <i class="fa-solid fa-warehouse"></i>
+                        <span>Công thức & Kho</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-procurement" href="/Procurement/Index">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                        <span>Nhập hàng & NCC</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-staff" href="/Staff/Index">
+                        <i class="fa-solid fa-user-tie"></i>
+                        <span>Nhân viên & Ca</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-finance" href="/Finance/Index">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                        <span>Thu chi & Logs</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link" id="nav-integrations" href="/Integrations/Index">
+                        <i class="fa-solid fa-robot"></i>
+                        <span>Liên kết & AI</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="header-bar">
+                <div class="page-title">@ViewData["Title"]</div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <!-- Language Selector -->
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-earth-asia" style="color: var(--text-muted); font-size: 14px;"></i>
+                        <select id="langSelect" onchange="changeLanguage(this.value)" class="form-control" style="width: 120px; font-size: 13px; padding: 4px 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: #fff; border-radius: 6px; cursor: pointer;">
+                            <option value="vi">🇻🇳 Tiếng Việt</option>
+                            <option value="en">🇬🇧 English</option>
+                            <option value="zh">🇨🇳 中文</option>
+                        </select>
+                    </div>
+                    <div class="user-profile">
+                        <span class="user-role-badge"><i class="fa-solid fa-shield-halved"></i> Administrator</span>
+                        <span>Admin</span>
+                        <i class="fa-regular fa-circle-user" style="font-size: 24px; color: var(--text-muted);"></i>
+                    </div>
+                </div>
+            </header>
+            <div class="content-body">
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        // Active Nav Link highlighting
+        document.addEventListener("DOMContentLoaded", function() {
+            var path = window.location.pathname.toLowerCase();
+            
+            // Default to dashboard
+            if (path === "/" || path === "/home" || path === "/home/index") {
+                document.getElementById("nav-dashboard").classList.add("active");
+            } else if (path.includes("/table")) {
+                document.getElementById("nav-table").classList.add("active");
+            } else if (path.includes("/order")) {
+                document.getElementById("nav-order").classList.add("active");
+            } else if (path.includes("/kitchen")) {
+                document.getElementById("nav-kitchen").classList.add("active");
+            } else if (path.includes("/payment")) {
+                document.getElementById("nav-payment").classList.add("active");
+            } else if (path.includes("/menu")) {
+                document.getElementById("nav-menu").classList.add("active");
+            } else if (path.includes("/crm")) {
+                document.getElementById("nav-crm").classList.add("active");
+            } else if (path.includes("/inventory")) {
+                document.getElementById("nav-inventory").classList.add("active");
+            } else if (path.includes("/procurement")) {
+                document.getElementById("nav-procurement").classList.add("active");
+            } else if (path.includes("/staff")) {
+                document.getElementById("nav-staff").classList.add("active");
+            } else if (path.includes("/finance")) {
+                document.getElementById("nav-finance").classList.add("active");
+            } else if (path.includes("/integrations")) {
+                document.getElementById("nav-integrations").classList.add("active");
+            }
+        });
+
+        // Translation Dictionary
+        var translations = {
+            "vi": {
+                "nav-dashboard": "Tổng quan",
+                "nav-table": "Phòng / Bàn",
+                "nav-order": "Phục vụ (POS)",
+                "nav-kitchen": "Màn hình bếp",
+                "nav-payment": "Thanh toán",
+                "nav-menu": "Thực đơn (Menu)",
+                "nav-crm": "Khách hàng (CRM)",
+                "nav-inventory": "Công thức & Kho",
+                "nav-procurement": "Nhập hàng & NCC",
+                "nav-staff": "Nhân viên & Ca",
+                "nav-finance": "Thu chi & Logs",
+                "nav-integrations": "Liên kết & AI",
+                "role-admin": "Quản trị viên"
+            },
+            "en": {
+                "nav-dashboard": "Dashboard",
+                "nav-table": "Table Map",
+                "nav-order": "POS Service",
+                "nav-kitchen": "Kitchen Display",
+                "nav-payment": "Payment Gate",
+                "nav-menu": "Menu Catalog",
+                "nav-crm": "Customers CRM",
+                "nav-inventory": "Recipe & Stock",
+                "nav-procurement": "Suppliers",
+                "nav-staff": "Staff Roster",
+                "nav-finance": "Cashbook & Logs",
+                "nav-integrations": "AI & API",
+                "role-admin": "Administrator"
+            },
+            "zh": {
+                "nav-dashboard": "系统总览",
+                "nav-table": "餐桌 management",
+                "nav-order": "收银点餐",
+                "nav-kitchen": "后厨大屏",
+                "nav-payment": "账单结账",
+                "nav-menu": "菜品管理",
+                "nav-crm": "会员管理",
+                "nav-inventory": "库存配方",
+                "nav-procurement": "采购供应",
+                "nav-staff": "员工排班",
+                "nav-finance": "收支流水",
+                "nav-integrations": "对接与AI",
+                "role-admin": "系统管理员"
+            }
+        };
+
+        function changeLanguage(lang) {
+            localStorage.setItem("selectedLanguage", lang);
+            
+            // Translate sidebar labels
+            for (var key in translations[lang]) {
+                var el = document.querySelector("#" + key + " span");
+                if (el) {
+                    el.innerText = translations[lang][key];
+                }
+            }
+
+            // Translate role badge
+            var roleBadge = document.querySelector(".user-role-badge");
+            if (roleBadge) {
+                roleBadge.innerHTML = '<i class="fa-solid fa-shield-halved"></i> ' + translations[lang]["role-admin"];
+            }
+
+            // Dispatch event for other pages to listen
+            var event = new CustomEvent("langChanged", { detail: lang });
+            document.dispatchEvent(event);
+        }
+
+        // Apply on load
+        document.addEventListener("DOMContentLoaded", function() {
+            var savedLang = localStorage.getItem("selectedLanguage") || "vi";
+            var langSel = document.getElementById("langSelect");
+            if (langSel) {
+                langSel.value = savedLang;
+            }
+            changeLanguage(savedLang);
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

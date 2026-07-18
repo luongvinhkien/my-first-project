@@ -1,0 +1,231 @@
+@using Quanan.Models
+@{
+    ViewData["Title"] = "Quản lý Sổ Quỹ Thu Chi & Nhật Ký Hệ Thống";
+    var cashflows = ViewData["CashFlows"] as List<CashFlow>;
+    var auditLogs = ViewData["AuditLogs"] as List<AuditLog>;
+    
+    var totalReceipts = (decimal)ViewData["TotalReceipts"];
+    var totalPayments = (decimal)ViewData["TotalPayments"];
+    var balance = (decimal)ViewData["Balance"];
+}
+
+<!-- Fund Balance Stats cards -->
+<div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+    <div class="stats-card">
+        <div class="stats-info">
+            <h3>Tổng thu quỹ (Receipts)</h3>
+            <div class="value text-success">+@totalReceipts.ToString("N0")đ</div>
+        </div>
+        <div class="stats-icon green">
+            <i class="fa-solid fa-arrow-trend-up"></i>
+        </div>
+    </div>
+    <div class="stats-card">
+        <div class="stats-info">
+            <h3>Tổng chi quỹ (Payments)</h3>
+            <div class="value text-danger">-@totalPayments.ToString("N0")đ</div>
+        </div>
+        <div class="stats-icon rose">
+            <i class="fa-solid fa-arrow-trend-down"></i>
+        </div>
+    </div>
+    <div class="stats-card">
+        <div class="stats-info">
+            <h3>Tồn quỹ khả dụng (Balance)</h3>
+            <div class="value @(balance >= 0 ? "text-success" : "text-danger")">@balance.ToString("N0")đ</div>
+        </div>
+        <div class="stats-icon blue">
+            <i class="fa-solid fa-scale-balanced"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Main Tabs -->
+<div class="glass-panel">
+    <div class="area-tabs" style="margin-bottom: 20px;">
+        <div class="area-tab active" onclick="switchFinanceTab('cashflow-tab', this)">
+            <i class="fa-solid fa-wallet"></i> Sổ quỹ Thu Chi
+        </div>
+        <div class="area-tab" onclick="switchFinanceTab('audit-tab', this)">
+            <i class="fa-solid fa-shield-halved"></i> Nhật ký hệ thống (Audit Logs)
+        </div>
+    </div>
+
+    <!-- Section 1: Sổ Quỹ Thu Chi -->
+    <div id="cashflow-tab" class="finance-section">
+        <div class="panel-header" style="margin-bottom: 12px; margin-top: 10px;">
+            <span class="panel-title" style="font-size: 15px;">Phiếu giao dịch quỹ ngân sách</span>
+            <button class="btn-accent" style="padding: 6px 12px; font-size: 13px;" onclick="openNewCashFlowModal()">
+                <i class="fa-solid fa-plus"></i> Lập phiếu Thu / Chi
+            </button>
+        </div>
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Giao dịch</th>
+                        <th>Loại</th>
+                        <th>Hạng mục chi phí</th>
+                        <th>Thời gian giao dịch</th>
+                        <th style="text-align: right;">Số tiền</th>
+                        <th>Mô tả</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var cf in cashflows)
+                    {
+                        var isReceipt = cf.Type == "Receipt";
+                        var typeText = isReceipt ? "Phiếu Thu" : "Phiếu Chi";
+                        var typeClass = isReceipt ? "badge bg-success" : "badge bg-danger";
+                        var amtClass = isReceipt ? "text-success" : "text-danger";
+                        var amtPrefix = isReceipt ? "+" : "-";
+
+                        <tr>
+                            <td><strong>@cf.Title</strong></td>
+                            <td><span class="@typeClass text-white px-2 py-0.5 rounded" style="font-size: 10px;">@typeText</span></td>
+                            <td><span class="badge bg-secondary">@cf.Category</span></td>
+                            <td>@cf.CreatedTime.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td style="text-align: right; font-weight: 700;" class="@amtClass">@amtPrefix@cf.Amount.ToString("N0")đ</td>
+                            <td style="font-size: 12px; color: var(--text-muted);">@cf.Description</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Section 2: Audit Logs -->
+    <div id="audit-tab" class="finance-section" style="display: none;">
+        <div class="panel-header" style="margin-bottom: 12px; margin-top: 10px;">
+            <span class="panel-title" style="font-size: 15px;">Truy vết hoạt động nhạy cảm hệ thống</span>
+        </div>
+        <div class="data-table-container">
+            <table class="data-table" style="font-size: 13px;">
+                <thead>
+                    <tr>
+                        <th>Thời gian</th>
+                        <th>Tài khoản</th>
+                        <th>Hành động tác vụ</th>
+                        <th>Bảng dữ liệu</th>
+                        <th>Bản ghi ID</th>
+                        <th>Địa chỉ IP</th>
+                        <th>Thiết bị login</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in auditLogs)
+                    {
+                        var isAlert = log.Action.Contains("Sửa giá") || log.Action.Contains("Hủy") || log.Action.Contains("Xóa");
+                        var alertStyle = isAlert ? "background-color: rgba(239, 68, 68, 0.05); color: var(--status-locked);" : "";
+
+                        <tr style="@alertStyle">
+                            <td>@log.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                            <td><strong>@log.Username</strong></td>
+                            <td>
+                                @if(isAlert) { <i class="fa-solid fa-triangle-exclamation"></i> }
+                                @log.Action
+                            </td>
+                            <td><span class="badge bg-secondary" style="font-family: monospace;">@log.TableName</span></td>
+                            <td>@log.RecordId</td>
+                            <td><span style="font-family: monospace;">@(log.IpAddress ?? "192.168.1.1")</span></td>
+                            <td style="font-size: 11px; color: var(--text-muted);">@(log.DeviceInfo ?? "Windows - Chrome")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: Lập Phiếu Thu / Chi -->
+<div id="newCashFlowModal" class="modal-overlay" onclick="closeNewCashFlowModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-cash-register text-success"></i> Lập Phiếu Thu / Chi ngân sách</span>
+            <span class="modal-close" onclick="closeNewCashFlowModal(null)">&times;</span>
+        </div>
+        <form asp-action="CreateCashFlow" method="post">
+            <div class="form-group">
+                <label>Loại giao dịch *</label>
+                <select name="Type" class="form-control" onchange="updateCategoryOptions(this.value)" required>
+                    <option value="Payment">Phiếu Chi (Expenses)</option>
+                    <option value="Receipt">Phiếu Thu (Income)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Nhóm hạng mục thu chi *</label>
+                <select name="Category" id="cfCategorySelect" class="form-control" required>
+                    <option value="Electricity">Tiền điện (Electricity)</option>
+                    <option value="Water">Tiền nước (Water)</option>
+                    <option value="Gas">Tiền Gas (Gas)</option>
+                    <option value="Marketing">Quảng cáo & Marketing</option>
+                    <option value="Salary">Trả lương nhân sự</option>
+                    <option value="Rent">Mặt bằng kinh doanh</option>
+                    <option value="Others">Chi phí khác (Others)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Tên giao dịch (Tiêu đề phiếu) *</label>
+                <input type="text" name="Title" class="form-control" placeholder="Ví dụ: Đóng tiền điện tháng 07..." required />
+            </div>
+            <div class="form-group">
+                <label>Số tiền (VNĐ) *</label>
+                <input type="number" name="Amount" class="form-control" placeholder="0" required />
+            </div>
+            <div class="form-group">
+                <label>Mô tả chi tiết</label>
+                <textarea name="Description" class="form-control" rows="2" placeholder="Ghi chú thêm thông tin đối tác, số tài khoản thanh toán..."></textarea>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeNewCashFlowModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Xác nhận Lập Phiếu</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function switchFinanceTab(tabId, element) {
+            // Highlighting tabs
+            var tabs = document.querySelectorAll('.area-tabs .area-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            element.classList.add('active');
+
+            // Hide/Show sections
+            var sections = document.querySelectorAll('.finance-section');
+            sections.forEach(sec => sec.style.display = 'none');
+            
+            document.getElementById(tabId).style.display = 'block';
+        }
+
+        function openNewCashFlowModal() {
+            document.getElementById('newCashFlowModal').style.display = 'flex';
+        }
+        function closeNewCashFlowModal(e) {
+            if (e === null || e.target === document.getElementById('newCashFlowModal')) {
+                document.getElementById('newCashFlowModal').style.display = 'none';
+            }
+        }
+
+        // Categories change dynamically based on Type selection
+        function updateCategoryOptions(type) {
+            var select = document.getElementById('cfCategorySelect');
+            select.innerHTML = "";
+            if (type === 'Receipt') {
+                select.innerHTML += '<option value="CustomerPayment">Doanh thu bán hàng</option>';
+                select.innerHTML += '<option value="Others">Thu nhập khác</option>';
+            } else {
+                select.innerHTML += '<option value="Electricity">Tiền điện (Electricity)</option>';
+                select.innerHTML += '<option value="Water">Tiền nước (Water)</option>';
+                select.innerHTML += '<option value="Gas">Tiền Gas (Gas)</option>';
+                select.innerHTML += '<option value="Marketing">Quảng cáo & Marketing</option>';
+                select.innerHTML += '<option value="Salary">Trả lương nhân sự</option>';
+                select.innerHTML += '<option value="Rent">Mặt bằng kinh doanh</option>';
+                select.innerHTML += '<option value="FoodSupplier">Chi trả nhà cung cấp</option>';
+                select.innerHTML += '<option value="Others">Chi phí khác (Others)</option>';
+            }
+        }
+    </script>
+}

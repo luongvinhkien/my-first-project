@@ -1,0 +1,277 @@
+@using Quanan.Models
+@{
+    ViewData["Title"] = "Quản lý Nhân Sự & Ca làm việc";
+    var staffList = ViewData["StaffList"] as List<Employee>;
+    var timekeepings = ViewData["Timekeepings"] as List<Timekeeping>;
+}
+
+<div class="pos-container" style="grid-template-columns: 3fr 2fr; height: auto;">
+    
+    <!-- Left Panel: Staff Directory & Shift Rosters -->
+    <div class="glass-panel">
+        <div class="panel-header">
+            <span class="panel-title"><i class="fa-solid fa-users-gear text-success"></i> Danh sách nhân sự & Phân ca</span>
+            <button class="btn-accent" style="padding: 6px 12px; font-size: 13px;" onclick="openNewStaffModal()">
+                <i class="fa-solid fa-plus"></i> Thêm nhân viên
+            </button>
+        </div>
+
+        <div class="data-table-container" style="margin-bottom: 24px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Họ và tên</th>
+                        <th>Chức vụ</th>
+                        <th>Số điện thoại</th>
+                        <th>Ca đăng ký</th>
+                        <th>Tài khoản</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var emp in staffList)
+                    {
+                        var roleColor = emp.Role == "Admin" ? "bg-danger" 
+                            : (emp.Role == "Manager" ? "bg-warning text-dark" 
+                            : (emp.Role == "Kitchen" ? "bg-info" : "bg-primary"));
+                        <tr>
+                            <td><strong>@emp.FullName</strong></td>
+                            <td><span class="badge @roleColor text-white px-2 py-0.5 rounded" style="font-size: 10px;">@emp.Role</span></td>
+                            <td>@emp.Phone</td>
+                            <td><span class="badge bg-secondary px-2 py-0.5 rounded" style="font-size: 10px;">Ca @emp.Shift</span></td>
+                            <td><span style="font-family: monospace;">@emp.Username</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Shift Schedule visual blocks -->
+        <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 12px;"><i class="fa-regular fa-calendar-check"></i> Sơ đồ ca làm việc trong ngày</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+            <div style="background: var(--bg-tertiary); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <strong style="color: var(--accent-color); font-size: 14px; display: block; margin-bottom: 8px;"><i class="fa-regular fa-sun"></i> Ca Sáng (06:00 - 12:00)</strong>
+                <ul style="list-style: none; font-size: 13px; color: var(--text-muted); padding: 0;">
+                    @foreach (var emp in staffList.Where(e => e.Shift == "Sáng"))
+                    {
+                        <li style="margin-bottom: 4px;"><i class="fa-solid fa-user-check text-success" style="font-size: 10px; margin-right: 6px;"></i> @emp.FullName</li>
+                    }
+                </ul>
+            </div>
+            <div style="background: var(--bg-tertiary); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <strong style="color: #3b82f6; font-size: 14px; display: block; margin-bottom: 8px;"><i class="fa-solid fa-cloud-sun"></i> Ca Chiều (12:00 - 18:00)</strong>
+                <ul style="list-style: none; font-size: 13px; color: var(--text-muted); padding: 0;">
+                    @foreach (var emp in staffList.Where(e => e.Shift == "Chiều"))
+                    {
+                        <li style="margin-bottom: 4px;"><i class="fa-solid fa-user-check text-info" style="font-size: 10px; margin-right: 6px;"></i> @emp.FullName</li>
+                    }
+                </ul>
+            </div>
+            <div style="background: var(--bg-tertiary); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <strong style="color: #f59e0b; font-size: 14px; display: block; margin-bottom: 8px;"><i class="fa-solid fa-moon"></i> Ca Tối (18:00 - 23:00)</strong>
+                <ul style="list-style: none; font-size: 13px; color: var(--text-muted); padding: 0;">
+                    @foreach (var emp in staffList.Where(e => e.Shift == "Tối"))
+                    {
+                        <li style="margin-bottom: 4px;"><i class="fa-solid fa-user-check text-warning" style="font-size: 10px; margin-right: 6px;"></i> @emp.FullName</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel: Timekeeping simulator & Permissions table -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Timekeeping Section -->
+        <div class="glass-panel">
+            <div class="panel-header">
+                <span class="panel-title"><i class="fa-solid fa-qrcode text-warning"></i> Chấm công (QR / FaceID / GPS)</span>
+            </div>
+
+            <!-- Timekeeping logs visualizer -->
+            <div style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; margin-bottom: 16px;">
+                @if (timekeepings != null && timekeepings.Count > 0)
+                {
+                    foreach (var tk in timekeepings)
+                    {
+                        <div style="background: var(--bg-tertiary); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                            <div>
+                                <strong>@tk.Employee?.FullName</strong>
+                                <span style="color: var(--text-muted); display: block;">Check-in: @tk.CheckInTime.ToString("HH:mm") (@tk.Method)</span>
+                            </div>
+                            <div>
+                                @if (tk.CheckOutTime.HasValue)
+                                {
+                                    <span style="color: var(--text-muted);">Check-out: @tk.CheckOutTime.Value.ToString("HH:mm")</span>
+                                }
+                                else
+                                {
+                                    <form asp-action="ClockOut" method="post">
+                                        <input type="hidden" name="timekeepingId" value="@tk.Id" />
+                                        <button type="submit" class="btn-outline" style="padding: 4px 8px; font-size: 11px; border-color: var(--status-cleaning); color: var(--status-cleaning);">Check-out</button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 10px 0;">Hôm nay chưa có ai chấm công.</div>
+                }
+            </div>
+
+            <!-- Simulated Check-In Form -->
+            <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <span style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 8px; color: var(--text-muted);">MÔ PHỎNG THIẾT BỊ CHẤM CÔNG</span>
+                <form asp-action="ClockIn" method="post">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                        <select name="employeeId" class="form-control" style="font-size: 12px; padding: 6px;" required>
+                            <option value="">-- Chọn nhân viên --</option>
+                            @foreach (var emp in staffList)
+                            {
+                                <option value="@emp.Id">@emp.FullName</option>
+                            }
+                        </select>
+                        <select name="method" class="form-control" style="font-size: 12px; padding: 6px;" required>
+                            <option value="FaceID">Khuôn mặt (FaceID)</option>
+                            <option value="QR">Quét mã QR POS</option>
+                            <option value="GPS">Định vị GPS di động</option>
+                            <option value="Fingerprint">Vân tay (POS Terminal)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-accent" style="width: 100%; justify-content: center; padding: 8px; font-size: 13px;">
+                        <i class="fa-solid fa-fingerprint"></i> Thực hiện quét chấm công VÀO
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Role Permissions Grid -->
+        <div class="glass-panel">
+            <div class="panel-header">
+                <span class="panel-title"><i class="fa-solid fa-shield-halved text-danger"></i> Phân quyền bảo mật hệ thống</span>
+            </div>
+            <div class="data-table-container" style="border: 1px solid var(--border-color); border-radius: 8px;">
+                <table class="data-table" style="font-size: 11px;">
+                    <thead>
+                        <tr style="background: rgba(255,255,255,0.01);">
+                            <th>Quyền hạn</th>
+                            <th style="text-align: center;">Thu ngân</th>
+                            <th style="text-align: center;">Đầu bếp</th>
+                            <th style="text-align: center;">Quản lý</th>
+                            <th style="text-align: center;">Admin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Gọi món/Order</td>
+                            <td style="text-align: center; color: var(--accent-color);"><i class="fa-solid fa-circle-check"></i></td>
+                            <td style="text-align: center; color: var(--text-muted);"><i class="fa-solid fa-circle-xmark"></i></td>
+                            <td style="text-align: center; color: var(--accent-color);"><i class="fa-solid fa-circle-check"></i></td>
+                            <td style="text-align: center; color: var(--accent-color);"><i class="fa-solid fa-circle-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>In bếp/Xem KDS</td>
+                            <td style="text-align: center; color: var(--text-muted);"><i class="fa-solid fa-circle-xmark"></i></td>
+                            <td style="text-align: center; color: var(--accent-color);"><i class="fa-solid fa-circle-check"></i></td>
+                            <td style="text-align: center; color: var(--accent-color);"><i class="fa-solid fa-circle-check"></i></td>
+                            <td style="text-align: center; color: var(--accent-color);"><i class="fa-solid fa-circle-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Sửa giá bán</td>
+                            <td style="text-align: center; color: var(--status-locked); font-weight: 700;">KHÔNG</td>
+                            <td style="text-align: center; color: var(--text-muted);"><i class="fa-solid fa-circle-xmark"></i></td>
+                            <td style="text-align: center; color: var(--accent-color);"><i class="fa-solid fa-circle-check"></i></td>
+                            <td style="text-align: center; color: var(--accent-color);"><i class="fa-solid fa-circle-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Xóa hóa đơn đã in</td>
+                            <td style="text-align: center; color: var(--status-locked); font-weight: 700;">KHÔNG</td>
+                            <td style="text-align: center; color: var(--text-muted);"><i class="fa-solid fa-circle-xmark"></i></td>
+                            <td style="text-align: center; color: var(--status-locked); font-weight: 700;">KHÔNG</td>
+                            <td style="text-align: center; color: var(--accent-color);"><i class="fa-solid fa-circle-check"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Xem Báo cáo tài chính</td>
+                            <td style="text-align: center; color: var(--text-muted);"><i class="fa-solid fa-circle-xmark"></i></td>
+                            <td style="text-align: center; color: var(--text-muted);"><i class="fa-solid fa-circle-xmark"></i></td>
+                            <td style="text-align: center; color: var(--accent-color);"><i class="fa-solid fa-circle-check"></i></td>
+                            <td style="text-align: center; color: var(--accent-color);"><i class="fa-solid fa-circle-check"></i></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Modal: New Staff Profile -->
+<div id="newStaffModal" class="modal-overlay" onclick="closeNewStaffModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-user-plus text-success"></i> Thêm Nhân Viên mới</span>
+            <span class="modal-close" onclick="closeNewStaffModal(null)">&times;</span>
+        </div>
+        <form asp-action="CreateEmployee" method="post">
+            <div class="form-group">
+                <label>Họ và tên nhân viên *</label>
+                <input type="text" name="FullName" class="form-control" placeholder="Trần Thị B" required />
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Số điện thoại</label>
+                    <input type="text" name="Phone" class="form-control" placeholder="090..." />
+                </div>
+                <div class="form-group">
+                    <label>Địa chỉ Email</label>
+                    <input type="email" name="Email" class="form-control" placeholder="staff@mail.com" />
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Chức vụ bảo mật *</label>
+                    <select name="Role" class="form-control" required>
+                        <option value="Cashier">Thu Ngân (Cashier)</option>
+                        <option value="Kitchen">Đầu Bếp (Kitchen)</option>
+                        <option value="Manager">Quản Lý (Manager)</option>
+                        <option value="Admin">Quản Trị Hệ Thống (Admin)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ca đăng ký cố định *</label>
+                    <select name="Shift" class="form-control" required>
+                        <option value="Sáng">Ca Sáng (06h - 12h)</option>
+                        <option value="Chiều">Ca Chiều (12h - 18h)</option>
+                        <option value="Tối">Ca Tối (18h - 23h)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Tên đăng nhập hệ thống *</label>
+                <input type="text" name="Username" class="form-control" placeholder="tranb" required />
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); font-style: italic;">
+                Lưu ý: Mật khẩu mặc định khởi tạo của nhân viên mới sẽ là "123456".
+            </p>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeNewStaffModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Lưu nhân sự</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openNewStaffModal() {
+            document.getElementById('newStaffModal').style.display = 'flex';
+        }
+        function closeNewStaffModal(e) {
+            if (e === null || e.target === document.getElementById('newStaffModal')) {
+                document.getElementById('newStaffModal').style.display = 'none';
+            }
+        }
+    </script>
+}

@@ -1,0 +1,259 @@
+@using Quanan.Models
+@{
+    ViewData["Title"] = "Nhà Cung Cấp & Nhập Hàng Kho";
+    var suppliers = ViewData["Suppliers"] as List<Supplier>;
+    var ingredients = ViewData["Ingredients"] as List<Ingredient>;
+    var selectedSupp = ViewData["SelectedSupplier"] as Supplier;
+    var purchaseHistory = ViewData["PurchaseHistory"] as List<PurchaseOrder>;
+}
+
+<div class="pos-container" style="grid-template-columns: 1fr 2fr; height: auto;">
+    
+    <!-- Sidebar: Suppliers directory -->
+    <div class="glass-panel" style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="panel-header" style="margin-bottom: 0;">
+            <span class="panel-title" style="font-size: 15px;"><i class="fa-solid fa-truck-field text-success"></i> Nhà cung cấp</span>
+            <button class="btn-accent" style="padding: 6px 12px; font-size: 13px;" onclick="openNewSupplierModal()">
+                <i class="fa-solid fa-plus"></i> Thêm NCC
+            </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 480px;">
+            @if (suppliers != null && suppliers.Count > 0)
+            {
+                foreach (var supp in suppliers)
+                {
+                    var activeStyle = selectedSupp != null && selectedSupp.Id == supp.Id ? "border: 1px solid var(--accent-color); background: rgba(16, 185, 129, 0.05);" : "";
+                    <div onclick="location.href='/Procurement/Index?selectedSupplierId=@supp.Id'" 
+                         style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s; @activeStyle">
+                        <div style="font-weight: 600; font-size: 13px; display: flex; justify-content: space-between;">
+                            <span>@supp.Name</span>
+                            <span class="@(supp.DebtAmount > 0 ? "text-danger" : "text-success")" style="font-size: 12px; font-weight: 700;">
+                                @supp.DebtAmount.ToString("N0")đ
+                            </span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;">
+                            <span>SĐT: @supp.Phone</span>
+                            <span>MST: @(supp.TaxCode ?? "N/A")</span>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div style="text-align: center; color: var(--text-muted); padding: 30px 0; font-size: 13px;">
+                    Chưa có nhà cung cấp nào.
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Main Section: Supplier details & Ledger logs -->
+    <div class="glass-panel">
+        @if (selectedSupp == null)
+        {
+            <div style="text-align: center; color: var(--text-muted); padding: 80px 0;">
+                <i class="fa-solid fa-truck-fast" style="font-size: 60px; margin-bottom: 16px; opacity: 0.3;"></i>
+                <p>Vui lòng chọn hoặc thêm nhà cung cấp để quản lý.</p>
+            </div>
+        }
+        else
+        {
+            <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div>
+                        <h2 style="font-size: 22px; font-weight: 700; margin: 0;">@selectedSupp.Name</h2>
+                        <span style="font-size: 12px; color: var(--text-muted);">Mã số thuế: @(selectedSupp.TaxCode ?? "Chưa có") | SĐT: @selectedSupp.Phone</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 13px; color: var(--text-muted); display: block;">Công nợ NCC cần trả</span>
+                        <strong style="font-size: 24px; color: var(--status-locked);">@selectedSupp.DebtAmount.ToString("N0")đ</strong>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-accent" onclick="openPurchaseModal()"><i class="fa-solid fa-cart-flatbed-suitcases"></i> Nhập hàng kho</button>
+                    @if (selectedSupp.DebtAmount > 0)
+                    {
+                        <button class="btn-outline" style="border-color: var(--accent-color); color: var(--accent-color);" onclick="openPayDebtModal()"><i class="fa-solid fa-hand-holding-dollar"></i> Thanh toán công nợ</button>
+                    }
+                </div>
+            </div>
+
+            <!-- Purchase Order ledger logs -->
+            <div>
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;"><i class="fa-solid fa-boxes-packing"></i> Lịch sử các đơn hàng nhập kho</h3>
+                <div class="data-table-container" style="border: 1px solid var(--border-color); border-radius: 8px;">
+                    <table class="data-table">
+                        <thead style="background: rgba(255,255,255,0.01);">
+                            <tr>
+                                <th>Mã đơn nhập</th>
+                                <th>Thời gian nhập</th>
+                                <th style="text-align: right;">Trị giá nhập</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (purchaseHistory != null && purchaseHistory.Count > 0)
+                            {
+                                foreach (var po in purchaseHistory)
+                                {
+                                    <tr>
+                                        <td><strong>PO-@po.Id</strong></td>
+                                        <td>@po.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td style="text-align: right; font-weight: 600;" class="text-danger">@po.TotalAmount.ToString("N0")đ</td>
+                                        <td><span class="badge bg-success text-white">@po.Status</span></td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted" style="padding: 20px 0;">Chưa có lịch sử nhập hàng nào từ nhà cung cấp này.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+
+</div>
+
+<!-- Modal: New Supplier Form -->
+<div id="newSupplierModal" class="modal-overlay" onclick="closeNewSupplierModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-truck-field text-success"></i> Đăng ký Nhà Cung Cấp mới</span>
+            <span class="modal-close" onclick="closeNewSupplierModal(null)">&times;</span>
+        </div>
+        <form asp-action="CreateSupplier" method="post">
+            <div class="form-group">
+                <label>Tên nhà cung cấp *</label>
+                <input type="text" name="Name" class="form-control" placeholder="Công ty Thực Phẩm Sạch..." required />
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Số điện thoại</label>
+                    <input type="text" name="Phone" class="form-control" placeholder="0243..." />
+                </div>
+                <div class="form-group">
+                    <label>Mã số thuế</label>
+                    <input type="text" name="TaxCode" class="form-control" placeholder="010..." />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Địa chỉ Email</label>
+                <input type="email" name="Email" class="form-control" placeholder="sales@supplier.com" />
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeNewSupplierModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Đăng ký</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Purchase Order Form (Nhập hàng) -->
+<div id="purchaseModal" class="modal-overlay" onclick="closePurchaseModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-truck-ramp-box text-success"></i> Tạo đơn nhập hàng kho</span>
+            <span class="modal-close" onclick="closePurchaseModal(null)">&times;</span>
+        </div>
+        <form asp-action="CreatePurchase" method="post">
+            <input type="hidden" name="supplierId" value="@(selectedSupp?.Id ?? 0)" />
+            <div class="form-group">
+                <label>Nhà cung cấp</label>
+                <input type="text" class="form-control" value="@(selectedSupp?.Name)" readonly />
+            </div>
+            <div class="form-group">
+                <label>Chọn nguyên liệu nhập kho *</label>
+                <select name="ingredientId" class="form-control" required>
+                    <option value="">-- Chọn nguyên liệu --</option>
+                    @foreach (var ing in ingredients)
+                    {
+                        <option value="@ing.Id">@ing.Name (@ing.Unit)</option>
+                    }
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Số lượng nhập *</label>
+                    <input type="number" step="0.001" name="quantity" class="form-control" placeholder="0.00" required />
+                </div>
+                <div class="form-group">
+                    <label>Đơn giá nhập (VNĐ) *</label>
+                    <input type="number" name="unitPrice" class="form-control" placeholder="đ/đơn vị" required />
+                </div>
+            </div>
+            <p style="font-size:11px; color:var(--text-muted); font-style:italic;">
+                Lưu ý: Hệ thống sẽ tự động cộng số lượng nhập vào tồn kho hiện tại, đồng thời ghi nhận nợ công nợ cho nhà cung cấp này.
+            </p>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closePurchaseModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Lập phiếu nhập</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Settle Debt (Thanh toán công nợ) -->
+<div id="payDebtModal" class="modal-overlay" onclick="closePayDebtModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-hand-holding-dollar text-success"></i> Thanh toán công nợ nhà cung cấp</span>
+            <span class="modal-close" onclick="closePayDebtModal(null)">&times;</span>
+        </div>
+        <form asp-action="PaySupplierDebt" method="post">
+            <input type="hidden" name="supplierId" value="@(selectedSupp?.Id ?? 0)" />
+            <div class="form-group">
+                <label>Tổng nợ hiện tại</label>
+                <input type="text" class="form-control" value="@(selectedSupp?.DebtAmount.ToString("N0") + "đ")" readonly />
+            </div>
+            <div class="form-group">
+                <label>Số tiền chi trả trả nợ *</label>
+                <input type="number" name="paymentAmount" class="form-control" max="@(selectedSupp?.DebtAmount)" placeholder="Nhập số tiền..." required />
+            </div>
+            <p style="font-size:11px; color:var(--text-muted); font-style:italic;">
+                Lưu ý: Giao dịch này sẽ trừ trực tiếp vào công nợ NCC và tạo 1 Phiếu Chi tiền mặt tự động trong sổ quỹ Thu Chi của cửa hàng.
+            </p>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closePayDebtModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Xác nhận Chi trả</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openNewSupplierModal() {
+            document.getElementById('newSupplierModal').style.display = 'flex';
+        }
+        function closeNewSupplierModal(e) {
+            if (e === null || e.target === document.getElementById('newSupplierModal')) {
+                document.getElementById('newSupplierModal').style.display = 'none';
+            }
+        }
+
+        function openPurchaseModal() {
+            document.getElementById('purchaseModal').style.display = 'flex';
+        }
+        function closePurchaseModal(e) {
+            if (e === null || e.target === document.getElementById('purchaseModal')) {
+                document.getElementById('purchaseModal').style.display = 'none';
+            }
+        }
+
+        function openPayDebtModal() {
+            document.getElementById('payDebtModal').style.display = 'flex';
+        }
+        function closePayDebtModal(e) {
+            if (e === null || e.target === document.getElementById('payDebtModal')) {
+                document.getElementById('payDebtModal').style.display = 'none';
+            }
+        }
+    </script>
+}

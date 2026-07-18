@@ -1,0 +1,230 @@
+@using Quanan.Models
+@{
+    ViewData["Title"] = "Quản lý Khách Hàng (CRM) & Thành Viên";
+    var customers = ViewData["Customers"] as List<Customer>;
+    var selectedCust = ViewData["SelectedCustomer"] as Customer;
+    var orderHistory = ViewData["OrderHistory"] as List<Order>;
+    var searchQuery = ViewData["SearchQuery"] as string;
+}
+
+<div class="pos-container" style="grid-template-columns: 1fr 2fr; height: auto;">
+    
+    <!-- Sidebar: Customer search & profiles list -->
+    <div class="glass-panel" style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="panel-header" style="margin-bottom: 0;">
+            <span class="panel-title" style="font-size: 15px;"><i class="fa-solid fa-users text-success"></i> Hội viên</span>
+            <button class="btn-accent" style="padding: 6px 12px; font-size: 13px;" onclick="openNewCustomerModal()">
+                <i class="fa-solid fa-user-plus"></i> Thêm mới
+            </button>
+        </div>
+
+        <!-- Search bar -->
+        <form asp-action="Index" method="get" style="display: flex; gap: 8px;">
+            <input type="text" name="search" class="form-control" placeholder="Tìm tên, SĐT..." value="@searchQuery" style="padding: 6px 12px;" />
+            <button type="submit" class="btn-outline" style="padding: 6px 12px;"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </form>
+
+        <!-- Profiles list -->
+        <div style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 480px;">
+            @if (customers != null && customers.Count > 0)
+            {
+                foreach (var cust in customers)
+                {
+                    var activeStyle = selectedCust != null && selectedCust.Id == cust.Id ? "border: 1px solid var(--accent-color); background: rgba(16, 185, 129, 0.05);" : "";
+                    
+                    var tierColor = cust.MemberTier == "VIP" ? "bg-danger" 
+                        : (cust.MemberTier == "Platinum" ? "bg-info" 
+                        : (cust.MemberTier == "Gold" ? "bg-warning text-dark" : "bg-secondary"));
+
+                    <div onclick="location.href='/Crm/Index?selectedCustomerId=@cust.Id&search=@searchQuery'" 
+                         style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s; @activeStyle">
+                        <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 13px;">
+                            <span>@cust.Name</span>
+                            <span class="badge @tierColor text-white px-2 py-0.5 rounded" style="font-size: 10px;">@cust.MemberTier</span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;">
+                            <span>@cust.Phone</span>
+                            <span class="text-success">@cust.Points điểm</span>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div style="text-align: center; color: var(--text-muted); padding: 30px 0; font-size: 13px;">
+                    Chưa có khách hàng nào.
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Main Section: Profile details & History -->
+    <div class="glass-panel">
+        @if (selectedCust == null)
+        {
+            <div style="text-align: center; color: var(--text-muted); padding: 80px 0;">
+                <i class="fa-solid fa-address-book" style="font-size: 60px; margin-bottom: 16px; opacity: 0.3;"></i>
+                <p>Vui lòng chọn hoặc thêm một khách hàng để xem chi tiết.</p>
+            </div>
+        }
+        else
+        {
+            <!-- Customer profile details cards -->
+            <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div>
+                        <h2 style="font-size: 22px; font-weight: 700; margin: 0;">@selectedCust.Name</h2>
+                        <span style="font-size: 12px; color: var(--text-muted);">Hạng thành viên: </span>
+                        
+                        @{
+                            var badgeColor = selectedCust.MemberTier == "VIP" ? "bg-danger" 
+                                : (selectedCust.MemberTier == "Platinum" ? "bg-info" 
+                                : (selectedCust.MemberTier == "Gold" ? "bg-warning text-dark" : "bg-secondary"));
+                        }
+                        <span class="badge @badgeColor text-white px-2 py-1 rounded" style="font-size: 12px;">@selectedCust.MemberTier</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 13px; color: var(--text-muted); display: block;">Điểm hiện có</span>
+                        <strong style="font-size: 26px; color: var(--accent-color);">@selectedCust.Points</strong>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; font-size: 14px;">
+                    <div><span class="text-muted">Số điện thoại:</span> <strong>@selectedCust.Phone</strong></div>
+                    <div><span class="text-muted">Email:</span> <strong>@(selectedCust.Email ?? "Chưa thiết lập")</strong></div>
+                    <div><span class="text-muted">Ngày sinh:</span> <strong>@(selectedCust.Birthdate.HasValue ? selectedCust.Birthdate.Value.ToString("dd/MM/yyyy") : "Chưa thiết lập")</strong></div>
+                    <div><span class="text-muted">Giới tính:</span> <strong>@(selectedCust.Gender ?? "Chưa thiết lập")</strong></div>
+                </div>
+            </div>
+
+            <!-- Point Redemption panel -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px dashed var(--border-color); border-radius: 10px; padding: 16px; margin-bottom: 24px;">
+                <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 12px;"><i class="fa-solid fa-gift text-warning"></i> Đổi quà tích lũy điểm</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <!-- Gift 1 -->
+                    <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color);">
+                        <div>
+                            <strong style="font-size: 14px; display: block;">Voucher giảm giá 50k</strong>
+                            <span style="font-size: 12px; color: var(--accent-color);">Yêu cầu: 500 điểm</span>
+                        </div>
+                        <form asp-action="RedeemGift" method="post">
+                            <input type="hidden" name="customerId" value="@selectedCust.Id" />
+                            <input type="hidden" name="giftType" value="Voucher 50k" />
+                            <input type="hidden" name="pointsCost" value="500" />
+                            <button type="submit" class="btn-accent" style="padding: 6px 12px; font-size: 12px;" @(selectedCust.Points < 500 ? "disabled style='background-color:#4b5563;cursor:not-allowed;box-shadow:none;'" : "")>Đổi quà</button>
+                        </form>
+                    </div>
+
+                    <!-- Gift 2 -->
+                    <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color);">
+                        <div>
+                            <strong style="font-size: 14px; display: block;">Voucher giảm giá 100k</strong>
+                            <span style="font-size: 12px; color: var(--accent-color);">Yêu cầu: 1000 điểm</span>
+                        </div>
+                        <form asp-action="RedeemGift" method="post">
+                            <input type="hidden" name="customerId" value="@selectedCust.Id" />
+                            <input type="hidden" name="giftType" value="Voucher 100k" />
+                            <input type="hidden" name="pointsCost" value="1000" />
+                            <button type="submit" class="btn-accent" style="padding: 6px 12px; font-size: 12px;" @(selectedCust.Points < 1000 ? "disabled style='background-color:#4b5563;cursor:not-allowed;box-shadow:none;'" : "")>Đổi quà</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dining History table -->
+            <div>
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử ăn uống & Hóa đơn đã thanh toán</h3>
+                <div class="data-table-container" style="border: 1px solid var(--border-color); border-radius: 8px;">
+                    <table class="data-table">
+                        <thead style="background: rgba(255,255,255,0.01);">
+                            <tr>
+                                <th>Hóa đơn ID</th>
+                                <th>Thời gian</th>
+                                <th>Bàn phục vụ</th>
+                                <th style="text-align: right;">Giá trị bill</th>
+                                <th>Thanh toán</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (orderHistory != null && orderHistory.Count > 0)
+                            {
+                                foreach (var ord in orderHistory)
+                                {
+                                    <tr>
+                                        <td><strong>HD-@ord.Id</strong></td>
+                                        <td>@ord.OrderTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>@(ord.Table?.TableNumber ?? "Mang đi")</td>
+                                        <td style="text-align: right; font-weight: 600;" class="text-success">@ord.FinalAmount.ToString("N0")đ</td>
+                                        <td><span class="badge bg-success text-white">@ord.PaymentMethod</span></td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted" style="padding: 20px 0;">Khách hàng này chưa có hóa đơn thanh toán nào.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+
+</div>
+
+<!-- Modal: New Customer Form -->
+<div id="newCustomerModal" class="modal-overlay" onclick="closeNewCustomerModal(event)">
+    <div class="modal-content-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="panel-title"><i class="fa-solid fa-user-plus text-success"></i> Đăng ký Khách Hàng mới</span>
+            <span class="modal-close" onclick="closeNewCustomerModal(null)">&times;</span>
+        </div>
+        <form asp-action="CreateCustomer" method="post">
+            <div class="form-group">
+                <label>Họ và tên khách hàng *</label>
+                <input type="text" name="Name" class="form-control" placeholder="Nguyễn Văn A" required />
+            </div>
+            <div class="form-group">
+                <label>Số điện thoại *</label>
+                <input type="text" name="Phone" class="form-control" placeholder="0901234567" required />
+            </div>
+            <div class="form-group">
+                <label>Địa chỉ Email</label>
+                <input type="email" name="Email" class="form-control" placeholder="a.nguyen@gmail.com" />
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Ngày sinh</label>
+                    <input type="date" name="Birthdate" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Giới tính</label>
+                    <select name="Gender" class="form-control">
+                        <option value="Nam">Nam</option>
+                        <option value="Nữ">Nữ</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-outline" onclick="closeNewCustomerModal(null)">Hủy</button>
+                <button type="submit" class="btn-accent">Lưu thông tin</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openNewCustomerModal() {
+            document.getElementById('newCustomerModal').style.display = 'flex';
+        }
+        function closeNewCustomerModal(e) {
+            if (e === null || e.target === document.getElementById('newCustomerModal')) {
+                document.getElementById('newCustomerModal').style.display = 'none';
+            }
+        }
+    </script>
+}
