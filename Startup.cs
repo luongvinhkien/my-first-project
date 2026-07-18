@@ -42,8 +42,14 @@ namespace Quanan
             services.AddDbContext<RestaurantDbContext>(options =>
             {
                 var pgConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+                
+                Console.WriteLine("==================================================");
+                Console.WriteLine($"[STARTUP] DATABASE_URL found: {!string.IsNullOrEmpty(pgConnectionString)}");
                 if (!string.IsNullOrEmpty(pgConnectionString))
                 {
+                    var secureUrl = pgConnectionString.Split('@').LastOrDefault();
+                    Console.WriteLine($"[STARTUP] DATABASE_URL (host part): {secureUrl}");
+                    
                     if (pgConnectionString.StartsWith("postgres://") || pgConnectionString.StartsWith("postgresql://"))
                     {
                         pgConnectionString = ConvertPostgresUrlToConnectionString(pgConnectionString);
@@ -52,8 +58,10 @@ namespace Quanan
                 }
                 else
                 {
+                    Console.WriteLine("[STARTUP] DATABASE_URL is missing. Falling back to SQL Server.");
                     options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
                 }
+                Console.WriteLine("==================================================");
             });
 
             services.AddControllersWithViews();
