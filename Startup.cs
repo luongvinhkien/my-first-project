@@ -47,13 +47,17 @@ namespace Quanan
                 Console.WriteLine($"[STARTUP] DATABASE_URL found: {!string.IsNullOrEmpty(pgConnectionString)}");
                 if (!string.IsNullOrEmpty(pgConnectionString))
                 {
+                    pgConnectionString = pgConnectionString.Trim().Trim('"').Trim('\'');
                     var secureUrl = pgConnectionString.Split('@').LastOrDefault();
                     Console.WriteLine($"[STARTUP] DATABASE_URL (host part): {secureUrl}");
                     
-                    if (pgConnectionString.StartsWith("postgres://") || pgConnectionString.StartsWith("postgresql://"))
+                    if (pgConnectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) || 
+                        pgConnectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
                     {
+                        Console.WriteLine("[STARTUP] Detected postgres:// URL. Converting to Npgsql connection string...");
                         pgConnectionString = ConvertPostgresUrlToConnectionString(pgConnectionString);
                     }
+                    
                     options.UseNpgsql(pgConnectionString);
                 }
                 else
