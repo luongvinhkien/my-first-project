@@ -23,11 +23,38 @@ namespace Quanan
 
         public IConfiguration Configuration { get; }
 
+        private string ConvertPostgresUrlToConnectionString(string url)
+        {
+            var uri = new Uri(url);
+            var userInfo = uri.UserInfo.Split(':');
+            var username = userInfo[0];
+            var password = userInfo.Length > 1 ? userInfo[1] : "";
+            var host = uri.Host;
+            var port = uri.Port;
+            var database = uri.AbsolutePath.TrimStart('/');
+
+            return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+        }
+
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<RestaurantDbContext>(options =>
-                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+            {
+                var pgConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+                if (!string.IsNullOrEmpty(pgConnectionString))
+                {
+                    if (pgConnectionString.StartsWith("postgres://") || pgConnectionString.StartsWith("postgresql://"))
+                    {
+                        pgConnectionString = ConvertPostgresUrlToConnectionString(pgConnectionString);
+                    }
+                    options.UseNpgsql(pgConnectionString);
+                }
+                else
+                {
+                    options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
+                }
+            });
 
             services.AddControllersWithViews();
         }
