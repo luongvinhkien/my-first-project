@@ -259,13 +259,13 @@
                         <option value="0">Tự xếp bàn khi đến</option>
                         @foreach (var tbl in emptyTables)
                         {
-                            <option value="@tbl.Id">@tbl.TableNumber (@tbl.Capacity người)</option>
+                            <option value="@tbl.Id" data-area-id="@tbl.AreaId">@tbl.TableNumber (@tbl.Capacity người)</option>
                         }
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Khu vực ưu tiên</label>
-                    <select name="areaId" class="form-control">
+                    <select name="areaId" id="resAreaSelect" class="form-control">
                         <option value="0">Bất kỳ</option>
                         @foreach (var area in areas)
                         {
@@ -548,5 +548,44 @@
                 }
             }
         }
+
+        // Filter reservation tables dynamically based on preferred area
+        $(document).ready(function() {
+            var originalTableOptions = [];
+            $('#resTableSelect option').each(function() {
+                originalTableOptions.push({
+                    value: $(this).val(),
+                    text: $(this).text(),
+                    areaId: $(this).attr('data-area-id')
+                });
+            });
+
+            $('#resAreaSelect').change(function() {
+                var selectedAreaId = $(this).val();
+                var tableSelect = $('#resTableSelect');
+                var currentValue = tableSelect.val();
+
+                // Clear current options
+                tableSelect.empty();
+
+                // Re-add options matching the selected area
+                originalTableOptions.forEach(function(opt) {
+                    if (opt.value === '0' || selectedAreaId === '0' || opt.areaId === selectedAreaId) {
+                        var optionElem = $('<option></option>')
+                            .attr('value', opt.value)
+                            .attr('data-area-id', opt.areaId)
+                            .text(opt.text);
+                        tableSelect.append(optionElem);
+                    }
+                });
+
+                // Restore previous value if it exists, otherwise default to '0'
+                if (tableSelect.find('option[value="' + currentValue + '"]').length > 0) {
+                    tableSelect.val(currentValue);
+                } else {
+                    tableSelect.val('0');
+                }
+            });
+        });
     </script>
 }
