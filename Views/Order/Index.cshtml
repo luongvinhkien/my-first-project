@@ -14,14 +14,19 @@
     
     <!-- Active Cart Panel (Left side) -->
     <div class="pos-cart-panel glass-panel">
-        <div class="panel-header" style="margin-bottom: 12px;">
-            <span class="panel-title">
+        <div class="panel-header" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <span class="panel-title" style="display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-cart-flatbed text-success"></i> 
                 Giỏ hàng: @(currentTable != null ? currentTable.TableNumber : "Chưa chọn bàn")
             </span>
             @if (currentTable != null)
             {
-                <span class="badge bg-success text-white">@currentTable.Status</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="btn btn-sm btn-outline-info" onclick="showQrModal()" style="font-size: 11px; padding: 4px 8px; display: flex; align-items: center; gap: 4px; border: 1px solid var(--accent-color); color: var(--accent-color); background: none; border-radius: 6px; cursor: pointer;">
+                        <i class="fa-solid fa-qrcode"></i> QR Đặt Món
+                    </button>
+                    <span class="badge bg-success text-white">@currentTable.Status</span>
+                </div>
             }
         </div>
 
@@ -528,5 +533,64 @@
         $(document).ready(function() {
             filterPosTables();
         });
+
+        // QR Modal functions
+        function showQrModal() {
+            $('#qrOrderingModal').css('display', 'flex');
+        }
+
+        function closeQrModal() {
+            $('#qrOrderingModal').css('display', 'none');
+        }
+
+        function printQrCode() {
+            var win = window.open('', '_blank');
+            win.document.write('<html><head><title>In Mã QR Đặt Món</title>');
+            win.document.write('<style>body{font-family:sans-serif; text-align:center; padding: 40px;} .container{max-width:300px; margin:0 auto; border: 1px dashed #ccc; padding:20px; border-radius:10px;} h2{margin: 10px 0 5px 0;} p{font-size:12px; color:#666; margin:0 0 15px 0;}</style>');
+            win.document.write('</head><body>');
+            win.document.write('<div class="container">');
+            win.document.write('<h2>ẨM THỰC VIỆT</h2>');
+            win.document.write('<p>Khu vực: @currentTable?.Area?.Name - @currentTable?.TableNumber</p>');
+            
+            @{
+                string printQrUrl = "";
+                if (currentTable != null)
+                {
+                    string rawString = $"{DateTime.Today:yyyyMMdd}|{currentTable.Area?.Name}|{currentTable.TableNumber}";
+                    byte[] bytes = System.Text.Encoding.UTF8.GetBytes(rawString);
+                    string qrToken = Convert.ToBase64String(bytes);
+                    printQrUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/CustomerOrder?token={qrToken}";
+                }
+            }
+            
+            win.document.write('<img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=@(Uri.EscapeDataString(printQrUrl))" style="width:220px; height:220px;" />');
+            win.document.write('<p style="margin-top:15px; font-size:10px;">Quét QR để tự gọi món bằng điện thoại</p>');
+            win.document.write('<p style="font-size:9px; color:#999; margin-top:5px;">Hiệu lực: @DateTime.Today.ToString("dd/MM/yyyy")</p>');
+            win.document.write('</div>');
+            win.document.write('<script>window.onload = function() { window.print(); window.close(); }</s' + 'cript>');
+            win.document.write('</body></html>');
+            win.document.close();
+        }
     </script>
+
+    <!-- Table QR Ordering Modal -->
+    <div id="qrOrderingModal" class="pos-modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
+        <div class="pos-modal-content" style="background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; width: 340px; padding: 24px; text-align: center; color: var(--text-main); position: relative;">
+            <button onclick="closeQrModal()" style="position: absolute; right: 16px; top: 16px; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+            <h3 style="font-size: 18px; margin-bottom: 8px; font-weight: 700; color: var(--accent-color);">QR CODE ĐẶT MÓN</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">Khách dùng Zalo/Camera quét mã này để tự đặt món tại @currentTable?.TableNumber</p>
+            
+            <div style="background-color: white; padding: 12px; border-radius: 8px; display: inline-block; margin-bottom: 16px;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=@(Uri.EscapeDataString(printQrUrl))" alt="QR Code" style="display: block; width: 200px; height: 200px;" />
+            </div>
+            
+            <div style="font-size: 11px; color: var(--text-muted); word-break: break-all; margin-bottom: 20px; background-color: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
+                @printQrUrl
+            </div>
+            
+            <button onclick="printQrCode()" class="btn-accent" style="width: 100%; justify-content: center; padding: 10px; font-size: 14px;">
+                <i class="fa-solid fa-print"></i> IN MÃ QR ĐẶT MÓN
+            </button>
+        </div>
+    </div>
 }

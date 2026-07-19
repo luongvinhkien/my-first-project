@@ -1,0 +1,933 @@
+@using Quanan.Models
+@{
+    Layout = null;
+    var table = (Table)ViewBag.Table;
+    var token = (string)ViewBag.Token;
+    var categories = (List<Category>)ViewBag.Categories;
+    var menuItems = (List<MenuItem>)ViewBag.MenuItems;
+    var activeOrder = (Order)ViewBag.ActiveOrder;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Đặt món tại bàn - Ẩm Thực Việt</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --emerald: #10b981;
+            --emerald-hover: #059669;
+            --slate-900: #020617;
+            --slate-800: #0f172a;
+            --slate-700: #1e293b;
+            --slate-400: #94a3b8;
+            --white: #f8fafc;
+        }
+
+        body {
+            background-color: var(--slate-900);
+            color: var(--white);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        /* Header bar */
+        header {
+            background-color: var(--slate-800);
+            border-bottom: 1px solid var(--slate-700);
+            padding: 14px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        header .brand-icon {
+            color: var(--emerald);
+        }
+
+        header .table-badge {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--emerald);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        /* Banner section */
+        .welcome-banner {
+            padding: 16px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-bottom: 1px solid var(--slate-700);
+            text-align: left;
+        }
+        .welcome-banner h2 {
+            font-size: 18px;
+            margin: 0 0 4px 0;
+            font-weight: 700;
+        }
+        .welcome-banner p {
+            font-size: 12px;
+            color: var(--slate-400);
+            margin: 0;
+        }
+
+        /* Categories Scroller */
+        .categories-container {
+            background-color: var(--slate-800);
+            padding: 12px 16px;
+            position: sticky;
+            top: 49px; /* height of header */
+            z-index: 90;
+            border-bottom: 1px solid var(--slate-700);
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none; /* Firefox */
+        }
+        .categories-container::-webkit-scrollbar {
+            display: none; /* Safari and Chrome */
+        }
+        .category-tab {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background-color: var(--slate-700);
+            color: var(--slate-400);
+            font-size: 13px;
+            font-weight: 600;
+            margin-right: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .category-tab.active {
+            background-color: var(--emerald);
+            color: white;
+            border-color: var(--emerald);
+        }
+
+        /* Food List */
+        .menu-section {
+            padding: 16px;
+            padding-bottom: 100px; /* offset for bottom floating cart */
+        }
+        .menu-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 0 0 16px 0;
+            color: var(--emerald);
+            border-left: 3px solid var(--emerald);
+            padding-left: 8px;
+        }
+        .menu-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .food-card {
+            background-color: var(--slate-800);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .food-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            object-fit: cover;
+            background-color: var(--slate-700);
+        }
+        .food-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 80px;
+        }
+        .food-info h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+            line-height: 1.4;
+        }
+        .food-info .price {
+            color: var(--emerald);
+            font-weight: 700;
+            font-size: 15px;
+            margin: 0 0 8px 0;
+        }
+        .add-btn {
+            align-self: flex-start;
+            background-color: var(--slate-700);
+            color: var(--white);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .add-btn:active {
+            background-color: var(--slate-600);
+        }
+
+        /* Customization Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(2, 6, 23, 0.85);
+            z-index: 1000;
+            display: none;
+            align-items: flex-end;
+        }
+        .modal-content {
+            background-color: var(--slate-800);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            width: 100%;
+            max-height: 85%;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+            animation: slideUp 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94);
+        }
+        @@keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--slate-400);
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .option-group {
+            margin-bottom: 16px;
+        }
+        .option-group-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--emerald);
+            margin-bottom: 8px;
+        }
+        .option-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .option-chip {
+            padding: 8px 12px;
+            border-radius: 8px;
+            background-color: var(--slate-700);
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+        .option-chip.selected {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--emerald);
+            border-color: var(--emerald);
+        }
+        .notes-input {
+            width: 100%;
+            background-color: var(--slate-700);
+            border: 1px solid var(--slate-700);
+            border-radius: 8px;
+            color: white;
+            padding: 10px;
+            font-size: 13px;
+            box-sizing: border-box;
+            margin-bottom: 16px;
+        }
+        .notes-input:focus {
+            outline: none;
+            border-color: var(--emerald);
+        }
+
+        /* Qty selector */
+        .qty-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .qty-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .qty-btn {
+            background-color: var(--slate-700);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .qty-num {
+            font-weight: 700;
+            font-size: 16px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        /* Bottom Floating Cart */
+        .floating-cart {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: var(--slate-800);
+            border-top: 1px solid var(--slate-700);
+            padding: 14px 16px;
+            box-sizing: border-box;
+            z-index: 500;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .cart-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .cart-qty {
+            font-size: 12px;
+            color: var(--slate-400);
+            margin-bottom: 2px;
+        }
+        .cart-price {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--emerald);
+        }
+        .checkout-btn {
+            background-color: var(--emerald);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Cart View Overlay */
+        .cart-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(2, 6, 23, 0.9);
+            z-index: 1001;
+            display: none;
+            flex-direction: column;
+        }
+        .cart-overlay-header {
+            background-color: var(--slate-800);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--slate-700);
+        }
+        .cart-overlay-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .cart-items-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        .cart-item-row {
+            background-color: var(--slate-800);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cart-item-details {
+            flex: 1;
+            margin-right: 12px;
+        }
+        .cart-item-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .cart-item-meta {
+            font-size: 11px;
+            color: var(--slate-400);
+        }
+        .cart-item-notes {
+            font-size: 11px;
+            color: Colors.orangeAccent;
+            margin-top: 2px;
+        }
+        .cart-item-price {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--emerald);
+            margin-bottom: 6px;
+        }
+
+        /* Success Dialog */
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--slate-900);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        .success-icon {
+            font-size: 64px;
+            color: var(--emerald);
+            margin-bottom: 20px;
+            animation: bounce 1s infinite alternate;
+        }
+        @@keyframes bounce {
+            from { transform: scale(0.9); }
+            to { transform: scale(1.1); }
+        }
+        .success-overlay h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+        }
+        .success-overlay p {
+            color: var(--slate-400);
+            font-size: 14px;
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <h1>
+            <i class="fa-solid fa-utensils brand-icon"></i>
+            <span>Ẩm Thực Việt</span>
+        </h1>
+        <span class="table-badge">@table.Area.Name - @table.TableNumber</span>
+    </header>
+
+    <!-- Welcome banner -->
+    <div class="welcome-banner">
+        <h2>Xin chào quý khách!</h2>
+        <p>Quý khách vui lòng chọn món ăn yêu thích bên dưới. Món ăn sau khi chọn sẽ gửi thẳng xuống bếp nấu phục vụ.</p>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="categories-container" id="categoryScroller">
+        <div class="category-tab active" onclick="filterCategory(0, this)">Tất cả</div>
+        @foreach (var cat in categories)
+        {
+            <div class="category-tab" onclick="filterCategory(@cat.Id, this)">@cat.Name</div>
+        }
+    </div>
+
+    <!-- Food Menu List -->
+    <div class="menu-section">
+        <div class="menu-title">Thực đơn đặt món</div>
+        <div class="menu-grid">
+            @foreach (var item in menuItems)
+            {
+                <div class="food-card" data-category-id="@item.CategoryId">
+                    <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120" : item.ImageUrl)" alt="@item.Name" class="food-img" />
+                    <div class="food-info">
+                        <div>
+                            <h3>@item.Name</h3>
+                            <p class="price">@string.Format("{0:N0}đ", item.Price)</p>
+                        </div>
+                        <button class="add-btn" onclick="openCustomizationModal(@item.Id)">
+                            <i class="fa-solid fa-plus"></i> Chọn món
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Customization Modal Overlay -->
+    <div class="modal" id="customModal" onclick="closeModalOnOuterClick(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modalFoodName">Món ăn</h3>
+                <button class="close-btn" onclick="closeCustomizationModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div id="modalOptionContainer">
+                <!-- Dynamic options generated in JS -->
+            </div>
+
+            <div class="option-group">
+                <div class="option-group-title">Ghi chú yêu cầu</div>
+                <input type="text" id="modalNotes" class="notes-input" placeholder="Ví dụ: không hành, nhiều đá, ít cay..." />
+            </div>
+
+            <div class="qty-row">
+                <span style="font-weight: 600; font-size: 14px;">Số lượng</span>
+                <div class="qty-selector">
+                    <button class="qty-btn" onclick="adjustModalQty(-1)">-</button>
+                    <span class="qty-num" id="modalQty">1</span>
+                    <button class="qty-btn" onclick="adjustModalQty(1)">+</button>
+                </div>
+            </div>
+
+            <button class="checkout-btn" style="width: 100%; justify-content: center;" onclick="addItemToCart()">
+                Thêm vào giỏ hàng - <span id="modalTotalPrice">0đ</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Floating bottom Cart Bar -->
+    <div class="floating-cart" id="floatingCart">
+        <div class="cart-info">
+            <span class="cart-qty" id="cartBadgeQty">0 món đã chọn</span>
+            <span class="cart-price" id="cartBadgePrice">0đ</span>
+        </div>
+        <button class="checkout-btn" onclick="openCartOverlay()">
+            Xem giỏ hàng <i class="fa-solid fa-arrow-right"></i>
+        </button>
+    </div>
+
+    <!-- View Cart details Overlay -->
+    <div class="cart-overlay" id="cartOverlay">
+        <div class="cart-overlay-header">
+            <h3>Chi tiết giỏ hàng đặt món</h3>
+            <button class="close-btn" style="color: white;" onclick="closeCartOverlay()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="cart-items-list" id="cartItemsList">
+            <!-- Cart items render dynamically here -->
+        </div>
+        <div class="floating-cart" style="display: flex; position: static;">
+            <div class="cart-info">
+                <span class="cart-qty" id="cartOverlayTotalQty">0 món</span>
+                <span class="cart-price" id="cartOverlayTotalPrice">0đ</span>
+            </div>
+            <button class="checkout-btn" id="submitOrderBtn" onclick="submitOrderToServer()">
+                Gửi nhà bếp đặt món <i class="fa-solid fa-circle-check"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Success Screen Overlay -->
+    <div class="success-overlay" id="successOverlay">
+        <i class="fa-solid fa-circle-check success-icon"></i>
+        <h2>Đặt món thành công!</h2>
+        <p>Yêu cầu đặt món của quý khách đã được chuyển trực tiếp vào nhà bếp chế biến. Quý khách vui lòng đợi trong giây lát.</p>
+        <button class="checkout-btn" onclick="window.location.reload()">Đặt thêm món</button>
+    </div>
+
+    <!-- Javascript Logic -->
+    <script>
+        // Database menu variables passed from ASP.NET
+        const menuItems = [
+            @foreach (var item in menuItems)
+            {
+                <text>{
+                    id: @item.Id,
+                    name: "@Html.Raw(item.Name)",
+                    price: @item.Price,
+                    imageUrl: "@Html.Raw(item.ImageUrl)",
+                    categoryId: @item.CategoryId,
+                    options: [
+                        @foreach (var opt in item.MenuItemOptions)
+                        {
+                            <text>{
+                                id: @opt.Id,
+                                groupName: "@Html.Raw(opt.GroupName)",
+                                optionName: "@Html.Raw(opt.OptionName)",
+                                extraPrice: @opt.ExtraPrice
+                            },</text>
+                        }
+                    ]
+                },</text>
+            }
+        ];
+
+        let selectedCategoryId = 0;
+        let currentEditingItemId = null;
+        let currentModalQty = 1;
+        let selectedOptions = {}; // { groupName: optionObject }
+        let cart = []; // List of cart items: { item, qty, notes, selectedOptions: { groupName: optionObject } }
+
+        // Category filter
+        function filterCategory(catId, element) {
+            // Update Active Tab UI
+            const tabs = document.querySelectorAll('.category-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            element.classList.add('active');
+
+            // Filter Grid Items
+            const foodCards = document.querySelectorAll('.food-card');
+            foodCards.forEach(card => {
+                const cardCatId = parseInt(card.getAttribute('data-category-id'));
+                if (catId === 0 || cardCatId === catId) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Open customization dialog
+        function openCustomizationModal(itemId) {
+            const item = menuItems.find(m => m.id === itemId);
+            if (!item) return;
+
+            currentEditingItemId = itemId;
+            currentModalQty = 1;
+            selectedOptions = {};
+            document.getElementById('modalQty').innerText = currentModalQty;
+            document.getElementById('modalNotes').value = "";
+            document.getElementById('modalFoodName').innerText = item.name;
+
+            // Render options
+            const container = document.getElementById('modalOptionContainer');
+            container.innerHTML = "";
+
+            // Group options
+            const grouped = {};
+            item.options.forEach(opt => {
+                if (!grouped[opt.groupName]) grouped[opt.groupName] = [];
+                grouped[opt.groupName].push(opt);
+            });
+
+            // For each group, create UI
+            for (const [groupName, opts] of Object.entries(grouped)) {
+                // Select first option by default
+                selectedOptions[groupName] = opts[0];
+
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'option-group';
+
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'option-group-title';
+                titleDiv.innerText = groupName;
+                groupDiv.appendChild(titleDiv);
+
+                const chipsDiv = document.createElement('div');
+                chipsDiv.className = 'option-chips';
+
+                opts.forEach(opt => {
+                    const chip = document.createElement('div');
+                    chip.className = 'option-chip' + (opts[0].id === opt.id ? ' selected' : '');
+                    chip.innerText = `${opt.optionName} (+${opt.extraPrice.toLocaleString('vi-VN')}đ)`;
+                    chip.onclick = () => selectOption(groupName, opt, chip, chipsDiv);
+                    chipsDiv.appendChild(chip);
+                });
+
+                groupDiv.appendChild(chipsDiv);
+                container.appendChild(groupDiv);
+            }
+
+            updateModalPrice();
+            document.getElementById('customModal').style.display = 'flex';
+        }
+
+        function selectOption(groupName, opt, chipElement, parentElement) {
+            // Remove selected class from siblings
+            const chips = parentElement.querySelectorAll('.option-chip');
+            chips.forEach(c => c.classList.remove('selected'));
+
+            // Select this chip
+            chipElement.classList.add('selected');
+            selectedOptions[groupName] = opt;
+
+            updateModalPrice();
+        }
+
+        function adjustModalQty(val) {
+            currentModalQty += val;
+            if (currentModalQty < 1) currentModalQty = 1;
+            document.getElementById('modalQty').innerText = currentModalQty;
+            updateModalPrice();
+        }
+
+        function updateModalPrice() {
+            const item = menuItems.find(m => m.id === currentEditingItemId);
+            if (!item) return;
+
+            let singlePrice = item.price;
+            for (const opt of Object.values(selectedOptions)) {
+                singlePrice += opt.extraPrice;
+            }
+
+            const totalPrice = singlePrice * currentModalQty;
+            document.getElementById('modalTotalPrice').innerText = totalPrice.toLocaleString('vi-VN') + 'đ';
+        }
+
+        function closeCustomizationModal() {
+            document.getElementById('customModal').style.display = 'none';
+        }
+
+        function closeModalOnOuterClick(e) {
+            if (e.target.id === 'customModal') {
+                closeCustomizationModal();
+            }
+        }
+
+        // Cart functions
+        function addItemToCart() {
+            const item = menuItems.find(m => m.id === currentEditingItemId);
+            if (!item) return;
+
+            const notes = document.getElementById('modalNotes').value;
+
+            // Add to cart list
+            cart.push({
+                item: item,
+                qty: currentModalQty,
+                notes: notes,
+                options: { ...selectedOptions }
+            });
+
+            closeCustomizationModal();
+            updateFloatingCartBadge();
+        }
+
+        function updateFloatingCartBadge() {
+            const cartBar = document.getElementById('floatingCart');
+            if (cart.length === 0) {
+                cartBar.style.display = 'none';
+                return;
+            }
+
+            cartBar.style.display = 'flex';
+
+            let totalQty = 0;
+            let totalPrice = 0;
+
+            cart.forEach(c => {
+                totalQty += c.qty;
+                let singlePrice = c.item.price;
+                for (const opt of Object.values(c.options)) {
+                    singlePrice += opt.extraPrice;
+                }
+                totalPrice += singlePrice * c.qty;
+            });
+
+            document.getElementById('cartBadgeQty').innerText = `${totalQty} món đã chọn`;
+            document.getElementById('cartBadgePrice').innerText = totalPrice.toLocaleString('vi-VN') + 'đ';
+
+            // Also update overlays
+            document.getElementById('cartOverlayTotalQty').innerText = `${totalQty} món`;
+            document.getElementById('cartOverlayTotalPrice').innerText = totalPrice.toLocaleString('vi-VN') + 'đ';
+        }
+
+        function openCartOverlay() {
+            renderCartList();
+            document.getElementById('cartOverlay').style.display = 'flex';
+        }
+
+        function closeCartOverlay() {
+            document.getElementById('cartOverlay').style.display = 'none';
+        }
+
+        function renderCartList() {
+            const container = document.getElementById('cartItemsList');
+            container.innerHTML = "";
+
+            if (cart.length === 0) {
+                container.innerHTML = "<div style='text-align: center; color: var(--slate-400); margin-top: 40px;'>Giỏ hàng đặt món trống!</div>";
+                return;
+            }
+
+            cart.forEach((c, index) => {
+                let singlePrice = c.item.price;
+                const optionsNames = [];
+                for (const opt of Object.values(c.options)) {
+                    singlePrice += opt.extraPrice;
+                    optionsNames.push(opt.optionName);
+                }
+                const subtotal = singlePrice * c.qty;
+
+                const row = document.createElement('div');
+                row.className = 'cart-item-row';
+
+                const details = document.createElement('div');
+                details.className = 'cart-item-details';
+
+                const title = document.createElement('div');
+                title.className = 'cart-item-title';
+                title.innerText = c.item.name;
+                details.appendChild(title);
+
+                const price = document.createElement('div');
+                price.className = 'cart-item-price';
+                price.innerText = subtotal.toLocaleString('vi-VN') + 'đ';
+                details.appendChild(price);
+
+                if (optionsNames.length > 0) {
+                    const meta = document.createElement('div');
+                    meta.className = 'cart-item-meta';
+                    meta.innerText = optionsNames.join(', ');
+                    details.appendChild(meta);
+                }
+
+                if (c.notes) {
+                    const noteText = document.createElement('div');
+                    noteText.className = 'cart-item-notes';
+                    noteText.innerHTML = `<i class="fa-solid fa-edit-note"></i> ${c.notes}`;
+                    details.appendChild(noteText);
+                }
+
+                row.appendChild(details);
+
+                // Qty changers
+                const qtySelector = document.createElement('div');
+                qtySelector.className = 'qty-selector';
+
+                const minusBtn = document.createElement('button');
+                minusBtn.className = 'qty-btn';
+                minusBtn.innerText = '-';
+                minusBtn.onclick = () => {
+                    cart[index].qty--;
+                    if (cart[index].qty <= 0) {
+                        cart.splice(index, 1);
+                    }
+                    renderCartList();
+                    updateFloatingCartBadge();
+                };
+                qtySelector.appendChild(minusBtn);
+
+                const qtyNum = document.createElement('span');
+                qtyNum.className = 'qty-num';
+                qtyNum.innerText = c.qty;
+                qtySelector.appendChild(qtyNum);
+
+                const plusBtn = document.createElement('button');
+                plusBtn.className = 'qty-btn';
+                plusBtn.innerText = '+';
+                plusBtn.onclick = () => {
+                    cart[index].qty++;
+                    renderCartList();
+                    updateFloatingCartBadge();
+                };
+                qtySelector.appendChild(plusBtn);
+
+                row.appendChild(qtySelector);
+                container.appendChild(row);
+            });
+        }
+
+        // Submit order to ASP.NET Core server
+        function submitOrderToServer() {
+            if (cart.length === 0) return;
+
+            const btn = document.getElementById('submitOrderBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang gửi...';
+
+            const payloadItems = cart.map(c => {
+                return {
+                    menuItemId: c.item.id,
+                    quantity: c.qty,
+                    notes: c.notes,
+                    options: Object.values(c.options).map(o => {
+                        return {
+                            optionName: o.optionName,
+                            price: o.extraPrice
+                        };
+                    })
+                };
+            });
+
+            const payload = {
+                token: "@token",
+                items: payloadItems
+            };
+
+            fetch('/CustomerOrder/SubmitOrder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: json = JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success screen overlay
+                    document.getElementById('successOverlay').style.display = 'flex';
+                } else {
+                    alert('Lỗi: ' + data.message);
+                    btn.disabled = false;
+                    btn.innerHTML = 'Gửi nhà bếp đặt món <i class="fa-solid fa-circle-check"></i>';
+                }
+            })
+            .catch(err => {
+                alert('Có lỗi mạng xảy ra. Vui lòng thử lại.');
+                btn.disabled = false;
+                btn.innerHTML = 'Gửi nhà bếp đặt món <i class="fa-solid fa-circle-check"></i>';
+            });
+        }
+    </script>
+</body>
+</html>
