@@ -71,11 +71,13 @@ namespace Quanan.Controllers
 
             var emptyTables = _context.Tables.Where(t => t.Status == "Empty").ToList();
             var servingTables = _context.Tables.Where(t => t.Status == "Serving").ToList();
+            var bookableTables = _context.Tables.Where(t => t.Status != "Locked").ToList();
 
             ViewData["Areas"] = areas;
             ViewData["Reservations"] = reservations;
             ViewData["EmptyTables"] = emptyTables;
             ViewData["ServingTables"] = servingTables;
+            ViewData["BookableTables"] = bookableTables;
 
             return View();
         }

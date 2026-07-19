@@ -5,6 +5,7 @@
     var reservations = ViewData["Reservations"] as List<Reservation>;
     var emptyTables = ViewData["EmptyTables"] as List<Table>;
     var servingTables = ViewData["ServingTables"] as List<Table>;
+    var bookableTables = ViewData["BookableTables"] as List<Table>;
 }
 
 <div class="pos-container" style="grid-template-columns: 2fr 1fr; height: auto;">
@@ -257,7 +258,7 @@
                     <label>Chọn bàn trước</label>
                     <select name="tableId" id="resTableSelect" class="form-control">
                         <option value="0">Tự xếp bàn khi đến</option>
-                        @foreach (var tbl in emptyTables)
+                        @foreach (var tbl in bookableTables)
                         {
                             <option value="@tbl.Id" data-area-id="@tbl.AreaId">@tbl.TableNumber (@tbl.Capacity người)</option>
                         }
