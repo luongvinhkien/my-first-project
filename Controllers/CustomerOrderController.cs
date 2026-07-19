@@ -146,7 +146,7 @@ namespace Quanan.Controllers
                     activeOrder = new Order
                     {
                         TableId = table.Id,
-                        Status = "Ordering",
+                        Status = "Kitchen",
                         OrderTime = DateTime.Now,
                         TotalAmount = 0,
                         DiscountAmount = 0,
@@ -159,6 +159,11 @@ namespace Quanan.Controllers
                     table.Status = "Serving";
                     _context.SaveChanges();
                 }
+                else
+                {
+                    // Ensure order status is updated to Kitchen so it shows on KDS
+                    activeOrder.Status = "Kitchen";
+                }
 
                 // Add Items to Order
                 foreach (var submitItem in model.Items)
@@ -166,7 +171,7 @@ namespace Quanan.Controllers
                     var menuItem = _context.MenuItems.Find(submitItem.MenuItemId);
                     if (menuItem == null) continue;
 
-                    // Create OrderItem, automatically set status to 'Cooking' so it pushes to kitchen screen!
+                    // Create OrderItem as Pending (waiting to be cooked)
                     var orderItem = new OrderItem
                     {
                         OrderId = activeOrder.Id,
@@ -174,8 +179,8 @@ namespace Quanan.Controllers
                         Quantity = submitItem.Quantity,
                         Price = menuItem.Price,
                         Notes = submitItem.Notes ?? "",
-                        Status = "Cooking", // Send straight to kitchen queue!
-                        CookingStartTime = DateTime.Now
+                        Status = "Pending",
+                        CookingStartTime = null
                     };
                     _context.OrderItems.Add(orderItem);
                     _context.SaveChanges(); // Save to generate OrderItemId
