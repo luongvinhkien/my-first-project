@@ -15,20 +15,20 @@
         <div class="glass-panel">
             <div class="panel-header">
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <span class="panel-title"><i class="fa-solid fa-map-location-dot text-success"></i> Sơ đồ khu vực phòng / bàn</span>
+                    <span class="panel-title" data-translate="map_title"><i class="fa-solid fa-map-location-dot text-success"></i> Sơ đồ khu vực phòng / bàn</span>
                     <!-- Left Date selector sync -->
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="font-size: 12px; color: var(--text-muted);">Ngày:</span>
+                        <span style="font-size: 12px; color: var(--text-muted);" data-translate="date_label">Ngày:</span>
                         <input type="date" onchange="location.href='/Table/Index?date=' + this.value" class="form-control" style="font-size: 12px; padding: 4px 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: #fff; border-radius: 6px; width: 135px;" value="@ViewData["SelectedDate"]" />
                     </div>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <div style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted);">
-                        <span style="display:inline-block; width:10px; height:10px; background-color:#6b7280; border-radius:50%;"></span> Trống
-                        <span style="display:inline-block; width:10px; height:10px; background-color:#10b981; border-radius:50%;"></span> Phục vụ
-                        <span style="display:inline-block; width:10px; height:10px; background-color:#3b82f6; border-radius:50%;"></span> Đặt trước
-                        <span style="display:inline-block; width:10px; height:10px; background-color:#f59e0b; border-radius:50%;"></span> Đang dọn
-                        <span style="display:inline-block; width:10px; height:10px; background-color:#ef4444; border-radius:50%;"></span> Khóa
+                        <span style="display:inline-block; width:10px; height:10px; background-color:#6b7280; border-radius:50%;"></span> <span data-translate="legend_empty">Trống</span>
+                        <span style="display:inline-block; width:10px; height:10px; background-color:#10b981; border-radius:50%;"></span> <span data-translate="legend_serving">Phục vụ</span>
+                        <span style="display:inline-block; width:10px; height:10px; background-color:#3b82f6; border-radius:50%;"></span> <span data-translate="legend_reserved">Đặt trước</span>
+                        <span style="display:inline-block; width:10px; height:10px; background-color:#f59e0b; border-radius:50%;"></span> <span data-translate="legend_cleaning">Đang dọn</span>
+                        <span style="display:inline-block; width:10px; height:10px; background-color:#ef4444; border-radius:50%;"></span> <span data-translate="legend_locked">Khóa</span>
                     </div>
                 </div>
             </div>
@@ -36,17 +36,17 @@
             <!-- Area tabs & Manager tools -->
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
                 <div class="area-tabs" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
-                    <div class="area-tab active" onclick="filterArea('all')">Tất cả</div>
+                    <div class="area-tab active" onclick="filterArea('all')" data-translate="tab_all">Tất cả</div>
                     @foreach (var area in areas)
                     {
                         <div class="area-tab" onclick="filterArea('area-@area.Id')">@area.Name</div>
                     }
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button onclick="openCreateAreaModal()" class="btn-outline" style="font-size: 12px; padding: 6px 12px; border-color: var(--accent-color); color: var(--accent-color);">
+                    <button onclick="openCreateAreaModal()" class="btn-outline" style="font-size: 12px; padding: 6px 12px; border-color: var(--accent-color); color: var(--accent-color);" data-translate="btn_add_area">
                         <i class="fa-solid fa-folder-plus"></i> Thêm khu vực
                     </button>
-                    <button onclick="openCreateTableModal()" class="btn-accent" style="font-size: 12px; padding: 6px 12px;">
+                    <button onclick="openCreateTableModal()" class="btn-accent" style="font-size: 12px; padding: 6px 12px;" data-translate="btn_add_table">
                         <i class="fa-solid fa-circle-plus"></i> Thêm bàn
                     </button>
                 </div>
@@ -82,14 +82,14 @@
         <div class="glass-panel" style="height: 100%; display: flex; flex-direction: column;">
             <div class="panel-header" style="flex-direction: column; align-items: stretch; gap: 10px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span class="panel-title"><i class="fa-solid fa-calendar-days text-primary"></i> Danh sách đặt bàn trước</span>
-                    <button class="btn-accent" style="padding: 6px 12px; font-size: 12px;" onclick="openReservationModal()">
+                    <span class="panel-title" data-translate="res_list_title"><i class="fa-solid fa-calendar-days text-primary"></i> Danh sách đặt bàn trước</span>
+                    <button class="btn-accent" style="padding: 6px 12px; font-size: 12px;" onclick="openReservationModal()" data-translate="btn_add_res">
                         <i class="fa-solid fa-plus"></i> Đặt bàn
                     </button>
                 </div>
                 <!-- Date selector -->
                 <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                    <span style="font-size: 12px; color: var(--text-muted);">Chọn ngày:</span>
+                    <span style="font-size: 12px; color: var(--text-muted);" data-translate="select_date_label">Chọn ngày:</span>
                     <input type="date" id="reservationDateFilter" onchange="location.href='/Table/Index?date=' + this.value" class="form-control" style="font-size: 12px; padding: 4px 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;" value="@ViewData["SelectedDate"]" />
                 </div>
             </div>
@@ -125,7 +125,7 @@
                                     </form>
                                     <form asp-action="CancelReservation" method="post">
                                         <input type="hidden" name="reservationId" value="@res.Id" />
-                                        <button type="submit" class="btn-outline" style="padding: 6px 12px; font-size: 12px; border-color: var(--status-locked); color: var(--status-locked);">Hủy</button>
+                                        <button type="submit" class="btn-outline" style="padding: 6px 12px; font-size: 12px; border-color: var(--status-locked); color: var(--status-locked);" data-translate="btn_cancel">Hủy</button>
                                     </form>
                                 </div>
                             }
@@ -136,7 +136,7 @@
                 {
                     <div style="text-align: center; color: var(--text-muted); padding: 40px 0;">
                         <i class="fa-regular fa-calendar" style="font-size: 40px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
-                        Chưa có lịch đặt bàn trước.
+                        <span data-translate="no_res_message">Chưa có lịch đặt bàn trước.</span>
                     </div>
                 }
             </div>
@@ -153,27 +153,27 @@
         </div>
         
         <div style="margin-bottom: 20px;">
-            <p style="font-size: 14px; margin-bottom: 6px;">Khu vực: <strong id="modalAreaName">Trong nhà</strong></p>
-            <p style="font-size: 14px; margin-bottom: 6px;">Sức chứa: <strong id="modalCapacity">4</strong> người</p>
-            <p style="font-size: 14px;">Trạng thái hiện tại: <span id="modalTableStatus" class="badge">Trống</span></p>
+            <p style="font-size: 14px; margin-bottom: 6px;"><span data-translate="area_label">Khu vực:</span> <strong id="modalAreaName">Trong nhà</strong></p>
+            <p style="font-size: 14px; margin-bottom: 6px;"><span data-translate="capacity_label">Sức chứa:</span> <strong id="modalCapacity">4</strong> <span data-translate="people_label">người</span></p>
+            <p style="font-size: 14px;"><span data-translate="status_label">Trạng thái:</span> <span id="modalTableStatus" class="badge">Trống</span></p>
         </div>
 
         <!-- Action Panel conditional on status -->
         <div id="emptyActions" style="display: none; flex-direction: column; gap: 10px;">
             <form asp-action="OpenTable" method="post">
                 <input type="hidden" name="tableId" id="openTableId" />
-                <button type="submit" class="btn-accent" style="width: 100%; justify-content: center;">
+                <button type="submit" class="btn-accent" style="width: 100%; justify-content: center;" data-translate="btn_open_table">
                     <i class="fa-solid fa-circle-play"></i> Mở bàn phục vụ khách
                 </button>
             </form>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <form asp-action="ToggleLockTable" method="post">
                     <input type="hidden" name="tableId" id="lockTableId" />
-                    <button type="submit" class="btn-outline" style="width: 100%; border-color: var(--status-locked); color: var(--status-locked);">
+                    <button type="submit" class="btn-outline" style="width: 100%; border-color: var(--status-locked); color: var(--status-locked);" data-translate="btn_lock_table">
                         <i class="fa-solid fa-lock"></i> Khóa bàn
                     </button>
                 </form>
-                <button class="btn-outline" onclick="triggerReservationForTable()">
+                <button class="btn-outline" onclick="triggerReservationForTable()" data-translate="btn_add_res">
                     <i class="fa-regular fa-calendar-plus"></i> Đặt trước
                 </button>
             </div>
@@ -181,20 +181,20 @@
 
         <div id="servingActions" style="display: none; flex-direction: column; gap: 10px;">
             <!-- POS Order Direct Link -->
-            <a href="#" id="posOrderLink" class="btn-accent" style="width: 100%; justify-content: center; text-decoration: none;">
+            <a href="#" id="posOrderLink" class="btn-accent" style="width: 100%; justify-content: center; text-decoration: none;" data-translate="nav-order">
                 <i class="fa-solid fa-cart-shopping"></i> Vào Gọi Món (Order POS)
             </a>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button class="btn-outline" onclick="openTransferModal()">
+                <button class="btn-outline" onclick="openTransferModal()" data-translate="btn_transfer_table">
                     <i class="fa-solid fa-arrow-right-arrow-left"></i> Chuyển bàn
                 </button>
-                <button class="btn-outline" onclick="openMergeModal()">
+                <button class="btn-outline" onclick="openMergeModal()" data-translate="btn_merge_table">
                     <i class="fa-solid fa-link"></i> Gộp bàn
                 </button>
             </div>
 
-            <a href="/Payment/Index" class="btn-outline" style="width: 100%; border-color: var(--accent-color); color: var(--accent-color); text-align: center; justify-content: center; display: flex; align-items: center; gap: 8px;">
+            <a href="/Payment/Index" class="btn-outline" style="width: 100%; border-color: var(--accent-color); color: var(--accent-color); text-align: center; justify-content: center; display: flex; align-items: center; gap: 8px;" data-translate="nav-payment">
                 <i class="fa-solid fa-cash-register"></i> Đọc Hóa Đơn & Thanh toán
             </a>
         </div>
@@ -202,7 +202,7 @@
         <div id="cleaningActions" style="display: none; flex-direction: column; gap: 10px;">
             <form asp-action="CleanTable" method="post">
                 <input type="hidden" name="tableId" id="cleanTableId" />
-                <button type="submit" class="btn-accent" style="width: 100%; justify-content: center; background-color: var(--status-cleaning);">
+                <button type="submit" class="btn-accent" style="width: 100%; justify-content: center; background-color: var(--status-cleaning);" data-translate="btn_clean_table">
                     <i class="fa-solid fa-broom"></i> Hoàn tất dọn dẹp bàn
                 </button>
             </form>
@@ -211,7 +211,7 @@
         <div id="lockedActions" style="display: none; flex-direction: column; gap: 10px;">
             <form asp-action="ToggleLockTable" method="post">
                 <input type="hidden" name="tableId" id="unlockTableId" />
-                <button type="submit" class="btn-accent" style="width: 100%; justify-content: center;">
+                <button type="submit" class="btn-accent" style="width: 100%; justify-content: center;" data-translate="btn_open_table">
                     <i class="fa-solid fa-lock-open"></i> Mở khóa bàn
                 </button>
             </form>
@@ -223,17 +223,17 @@
 <div id="reservationModal" class="modal-overlay" onclick="closeReservationModal(event)">
     <div class="modal-content-panel" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <span class="panel-title"><i class="fa-regular fa-calendar-plus text-success"></i> Đặt bàn trước</span>
+            <span class="panel-title" data-translate="btn_add_res"><i class="fa-regular fa-calendar-plus text-success"></i> Đặt bàn trước</span>
             <span class="modal-close" onclick="closeReservationModal(null)">&times;</span>
         </div>
         <form asp-action="CreateReservation" method="post">
             <div class="form-group">
-                <label>Tên khách hàng</label>
-                <input type="text" name="customerName" class="form-control" placeholder="Nguyễn Văn A" required />
+                <label data-translate="customer_label">Tên khách hàng</label>
+                <input type="text" name="customerName" class="form-control" placeholder="Nguyễn Văn A" data-translate="placeholder_name" required />
             </div>
             <div class="form-group">
-                <label>Số điện thoại</label>
-                <input type="text" name="customerPhone" class="form-control" placeholder="0901234567" required />
+                <label data-translate="phone_label">Số điện thoại</label>
+                <input type="text" name="customerPhone" class="form-control" placeholder="0901234567" data-translate="placeholder_phone" required />
             </div>
             <div class="form-group">
                 <label>Email (Nhận xác nhận)</label>
@@ -241,21 +241,21 @@
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div class="form-group">
-                    <label>Số khách</label>
+                    <label data-translate="guests_label">Số khách</label>
                     <input type="number" name="guestCount" class="form-control" value="2" min="1" required />
                 </div>
                 <div class="form-group">
-                    <label>Tiền đặt cọc (VNĐ)</label>
+                    <label data-translate="deposit_label">Tiền đặt cọc (VNĐ)</label>
                     <input type="number" name="deposit" class="form-control" value="0" min="0" />
                 </div>
             </div>
             <div class="form-group">
-                <label>Thời gian đến</label>
+                <label data-translate="time_label">Thời gian đến</label>
                 <input type="datetime-local" name="reservationTime" class="form-control" required />
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div class="form-group">
-                    <label>Chọn bàn trước</label>
+                    <label data-translate="choose_table_label">Chọn bàn trước</label>
                     <select name="tableId" id="resTableSelect" class="form-control">
                         <option value="0">Tự xếp bàn khi đến</option>
                         @foreach (var tbl in bookableTables)
@@ -265,7 +265,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Khu vực ưu tiên</label>
+                    <label data-translate="preferred_area_label">Khu vực ưu tiên</label>
                     <select name="areaId" id="resAreaSelect" class="form-control">
                         <option value="0">Bất kỳ</option>
                         @foreach (var area in areas)
@@ -276,12 +276,12 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Ghi chú</label>
-                <textarea name="note" class="form-control" rows="2" placeholder="Không tiêu, setup sinh nhật, ..."></textarea>
+                <label data-translate="note_label">Ghi chú</label>
+                <textarea name="note" class="form-control" rows="2" placeholder="Không tiêu, setup sinh nhật, ..." data-translate="placeholder_notes"></textarea>
             </div>
             <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;">
-                <button type="button" class="btn-outline" onclick="closeReservationModal(null)">Hủy</button>
-                <button type="submit" class="btn-accent">Xác nhận đặt bàn</button>
+                <button type="button" class="btn-outline" onclick="closeReservationModal(null)" data-translate="btn_cancel">Hủy</button>
+                <button type="submit" class="btn-accent" data-translate="btn_confirm_res">Xác nhận đặt bàn</button>
             </div>
         </form>
     </div>
@@ -291,17 +291,17 @@
 <div id="transferModal" class="modal-overlay" onclick="closeTransferModal(event)">
     <div class="modal-content-panel" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <span class="panel-title"><i class="fa-solid fa-arrow-right-arrow-left"></i> Chuyển Bàn</span>
+            <span class="panel-title" data-translate="btn_transfer_table"><i class="fa-solid fa-arrow-right-arrow-left"></i> Chuyển Bàn</span>
             <span class="modal-close" onclick="closeTransferModal(null)">&times;</span>
         </div>
         <form asp-action="TransferTable" method="post">
             <input type="hidden" name="fromTableId" id="transferFromTableId" />
             <div class="form-group">
-                <label>Chuyển từ bàn</label>
+                <label data-translate="label_transfer_from">Chuyển từ bàn</label>
                 <input type="text" id="transferFromTableName" class="form-control" readonly />
             </div>
             <div class="form-group">
-                <label>Sang bàn trống</label>
+                <label data-translate="label_transfer_to">Sang bàn trống</label>
                 <select name="toTableId" class="form-control" required>
                     @foreach (var tbl in emptyTables)
                     {
@@ -310,8 +310,8 @@
                 </select>
             </div>
             <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
-                <button type="button" class="btn-outline" onclick="closeTransferModal(null)">Hủy</button>
-                <button type="submit" class="btn-accent">Đồng ý Chuyển</button>
+                <button type="button" class="btn-outline" onclick="closeTransferModal(null)" data-translate="btn_cancel">Hủy</button>
+                <button type="submit" class="btn-accent" data-translate="btn_confirm_transfer">Đồng ý Chuyển</button>
             </div>
         </form>
     </div>
@@ -321,17 +321,17 @@
 <div id="mergeModal" class="modal-overlay" onclick="closeMergeModal(event)">
     <div class="modal-content-panel" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <span class="panel-title"><i class="fa-solid fa-link"></i> Gộp Bàn</span>
+            <span class="panel-title" data-translate="btn_merge_table"><i class="fa-solid fa-link"></i> Gộp Bàn</span>
             <span class="modal-close" onclick="closeMergeModal(null)">&times;</span>
         </div>
         <form asp-action="MergeTables" method="post">
             <input type="hidden" name="sourceTableId" id="mergeSourceTableId" />
             <div class="form-group">
-                <label>Gộp toàn bộ món ở bàn</label>
+                <label data-translate="label_merge_source">Gộp toàn bộ món ở bàn</label>
                 <input type="text" id="mergeSourceTableName" class="form-control" readonly />
             </div>
             <div class="form-group">
-                <label>Vào bàn đang hoạt động</label>
+                <label data-translate="label_merge_target">Vào bàn đang hoạt động</label>
                 <select name="targetTableId" class="form-control" required>
                     @foreach (var tbl in servingTables)
                     {
@@ -339,12 +339,12 @@
                     }
                 </select>
             </div>
-            <p style="font-size: 12px; color: var(--text-muted); font-style: italic;">
+            <p style="font-size: 12px; color: var(--text-muted); font-style: italic;" data-translate="label_merge_hint">
                 Lưu ý: Toàn bộ danh sách món ăn đã order ở bàn nguồn sẽ được cộng dồn sang bàn đích. Bàn nguồn sẽ chuyển sang trạng thái đang dọn dẹp.
             </p>
             <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
-                <button type="button" class="btn-outline" onclick="closeMergeModal(null)">Hủy</button>
-                <button type="submit" class="btn-accent">Xác nhận Gộp</button>
+                <button type="button" class="btn-outline" onclick="closeMergeModal(null)" data-translate="btn_cancel">Hủy</button>
+                <button type="submit" class="btn-accent" data-translate="btn_confirm_merge">Xác nhận Gộp</button>
             </div>
         </form>
     </div>
@@ -354,17 +354,17 @@
 <div id="createAreaModal" class="modal-overlay" onclick="closeCreateAreaModal(event)">
     <div class="modal-content-panel" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <span class="panel-title"><i class="fa-solid fa-folder-plus text-success"></i> Thêm Khu Vực / Lầu Mới</span>
+            <span class="panel-title" data-translate="btn_add_area"><i class="fa-solid fa-folder-plus text-success"></i> Thêm Khu Vực / Lầu Mới</span>
             <span class="modal-close" onclick="closeCreateAreaModal(null)">&times;</span>
         </div>
         <form asp-action="CreateArea" method="post">
             <div class="form-group">
-                <label>Tên khu vực (ví dụ: Lầu 2, Lầu 3, VIP)</label>
-                <input type="text" name="areaName" class="form-control" placeholder="Nhập tên khu vực..." required />
+                <label data-translate="label_area_name">Tên khu vực (ví dụ: Lầu 2, Lầu 3, VIP)</label>
+                <input type="text" name="areaName" class="form-control" placeholder="Nhập tên khu vực..." data-translate="placeholder_area" required />
             </div>
             <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
-                <button type="button" class="btn-outline" onclick="closeCreateAreaModal(null)">Hủy</button>
-                <button type="submit" class="btn-accent">Lưu Khu Vực</button>
+                <button type="button" class="btn-outline" onclick="closeCreateAreaModal(null)" data-translate="btn_cancel">Hủy</button>
+                <button type="submit" class="btn-accent" data-translate="btn_save_area">Lưu Khu Vực</button>
             </div>
         </form>
     </div>
@@ -374,16 +374,16 @@
 <div id="createTableModal" class="modal-overlay" onclick="closeCreateTableModal(event)">
     <div class="modal-content-panel" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <span class="panel-title"><i class="fa-solid fa-circle-plus text-success"></i> Thêm Bàn Mới</span>
+            <span class="panel-title" data-translate="btn_add_table"><i class="fa-solid fa-circle-plus text-success"></i> Thêm Bàn Mới</span>
             <span class="modal-close" onclick="closeCreateTableModal(null)">&times;</span>
         </div>
         <form asp-action="CreateTable" method="post">
             <div class="form-group">
-                <label>Số hiệu bàn (ví dụ: Bàn 12, VIP 05)</label>
-                <input type="text" name="tableNumber" class="form-control" placeholder="Nhập tên/số hiệu bàn..." required />
+                <label data-translate="label_table_number">Số hiệu bàn (ví dụ: Bàn 12, VIP 05)</label>
+                <input type="text" name="tableNumber" class="form-control" placeholder="Nhập tên/số hiệu bàn..." data-translate="placeholder_table" required />
             </div>
             <div class="form-group">
-                <label>Khu vực phòng / lầu</label>
+                <label data-translate="label_table_area">Khu vực phòng / lầu</label>
                 <select name="areaId" class="form-control" required>
                     @foreach (var area in areas)
                     {
@@ -392,12 +392,12 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Số người tối đa (Sức chứa)</label>
+                <label data-translate="label_table_capacity">Số người tối đa (Sức chứa)</label>
                 <input type="number" name="capacity" class="form-control" value="4" min="1" required />
             </div>
             <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
-                <button type="button" class="btn-outline" onclick="closeCreateTableModal(null)">Hủy</button>
-                <button type="submit" class="btn-accent">Lưu Bàn</button>
+                <button type="button" class="btn-outline" onclick="closeCreateTableModal(null)" data-translate="btn_cancel">Hủy</button>
+                <button type="submit" class="btn-accent" data-translate="btn_save_table">Lưu Bàn</button>
             </div>
         </form>
     </div>
